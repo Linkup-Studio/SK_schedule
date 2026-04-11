@@ -85,7 +85,7 @@ export const MOCK_GAMES: Game[] = [
   {
     id: "game-003",
     title: "○○カップ（2日間）",
-    type: "tournament",
+    type: "official",
     opponent: "初戦: 抽選",
     venueName: "県営球場",
     venueAddress: "東京都○○市○○7-8-9",
