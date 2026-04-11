@@ -107,21 +107,18 @@ export async function fetchUpcomingGames(): Promise<Game[]> {
   return (data ?? []).map(toGame);
 }
 
-/** 直近2週間の試合を取得 */
-export async function fetchThisWeekGames(): Promise<Game[]> {
+/** 今後の試合を取得 */
+export async function fetchUpcomingGames(): Promise<Game[]> {
   const now = new Date();
-  const twoWeeksLater = new Date(now);
-  twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
 
   const { data, error } = await supabase
     .from("games")
     .select("*")
     .gte("date_start", now.toISOString())
-    .lte("date_start", twoWeeksLater.toISOString())
     .order("date_start", { ascending: true });
 
   if (error) {
-    console.error("直近の試合の取得に失敗しました:", error.message);
+    console.error("今後の試合の取得に失敗しました:", error.message);
     return [];
   }
   return (data ?? []).map(toGame);

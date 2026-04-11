@@ -17,13 +17,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TEAM_NAME } from "@/lib/constants";
-import { fetchThisWeekGames, fetchAnnouncements, fetchAttendanceSummary } from "@/lib/supabase-data";
+import { fetchUpcomingGames, fetchAnnouncements, fetchAttendanceSummary } from "@/lib/supabase-data";
 import { GameTypeBadge, GradeBadge, AttendanceSummaryBar } from "@/components/common/badges";
 import type { Game, Announcement, AttendanceSummary } from "@/lib/types";
 
 /** 管理者ダッシュボード — Supabase接続版 */
 export default function DashboardPage() {
-  const [thisWeekGames, setThisWeekGames] = useState<Game[]>([]);
+  const [upcomingGames, setUpcomingGames] = useState<Game[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [summaries, setSummaries] = useState<Record<string, AttendanceSummary>>({});
   const [loading, setLoading] = useState(true);
@@ -33,10 +33,10 @@ export default function DashboardPage() {
       setLoading(true);
       try {
         const [games, anns] = await Promise.all([
-          fetchThisWeekGames(),
+          fetchUpcomingGames(),
           fetchAnnouncements(),
         ]);
-        setThisWeekGames(games);
+        setUpcomingGames(games);
         setAnnouncements(anns);
 
         // 各試合の出欠サマリーを取得
@@ -88,7 +88,7 @@ export default function DashboardPage() {
             おはようございます 👋
           </h1>
           <p className="text-xs text-primary-100">
-            {TEAM_NAME}の今週の予定をチェック
+            {TEAM_NAME}の予定をチェック
           </p>
         </div>
       </section>
@@ -116,7 +116,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-2.5">
           <h2 className="flex items-center gap-1.5 font-black text-[15px]">
             <CalendarDays className="w-4.5 h-4.5 text-primary" />
-            今週の試合
+            今後の試合
           </h2>
           <Link
             href="/calendar"
@@ -127,9 +127,9 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        {thisWeekGames.length > 0 ? (
+        {upcomingGames.length > 0 ? (
           <div className="space-y-2.5">
-            {thisWeekGames.map((game) => {
+            {upcomingGames.map((game) => {
               const summary = summaries[game.id] ?? { attend: 0, absent: 0, undecided: 0, noAnswer: 0, total: 0 };
               const dateStart = new Date(game.dateStart);
               return (
@@ -181,7 +181,7 @@ export default function DashboardPage() {
         ) : (
           <div className="bg-surface rounded-2xl border border-border p-6 text-center">
             <CalendarDays className="w-8 h-8 text-muted mx-auto mb-1.5" />
-            <p className="text-xs text-muted">今週の試合はありません</p>
+            <p className="text-xs text-muted">今後の試合はありません</p>
           </div>
         )}
       </section>
