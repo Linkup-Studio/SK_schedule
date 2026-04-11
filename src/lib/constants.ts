@@ -1,5 +1,5 @@
 /** チーム設定 */
-export const TEAM_NAME = "SKベースボールクラブ";
+export const TEAM_NAME = "一色SKクラブ";
 export const TEAM_SHORT = "SK";
 
 /** 学年ラベル */

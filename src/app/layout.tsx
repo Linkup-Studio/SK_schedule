@@ -25,8 +25,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "BallPark | SKベースボールクラブ",
-  description: "SKベースボールクラブの試合スケジュール管理・出欠確認アプリ",
+  title: "BallPark | 一色SKクラブ",
+  description: "一色SKクラブの試合スケジュール管理・出欠確認アプリ",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
