@@ -195,6 +195,50 @@ export async function deleteGame(id: string): Promise<boolean> {
   return true;
 }
 
+/** 試合を更新 */
+export async function updateGame(id: string, input: {
+  title: string;
+  type: string;
+  grades: number[];
+  venueName: string;
+  venueAddress?: string;
+  meetingPlace?: string;
+  dateStart: string;
+  dateEnd?: string;
+  meetingTime?: string;
+  rsvpDeadline?: string;
+  opponent?: string;
+  items?: string;
+  notes?: string;
+}): Promise<Game | null> {
+  const { data, error } = await supabase
+    .from("games")
+    .update({
+      title: input.title,
+      type: input.type,
+      grades: input.grades,
+      venue_name: input.venueName,
+      venue_address: input.venueAddress || null,
+      meeting_place: input.meetingPlace || null,
+      date_start: input.dateStart,
+      date_end: input.dateEnd || null,
+      meeting_time: input.meetingTime || null,
+      rsvp_deadline: input.rsvpDeadline || null,
+      opponent: input.opponent || null,
+      items: input.items || null,
+      notes: input.notes || null,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("試合の更新に失敗しました:", error.message);
+    return null;
+  }
+  return data ? toGame(data) : null;
+}
+
 // =============================================
 // 出欠（Attendances）
 // =============================================

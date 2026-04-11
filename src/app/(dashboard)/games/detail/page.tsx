@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { format, differenceInDays } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -18,9 +18,11 @@ import {
   Copy,
   CheckCheck,
   Loader2,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fetchGameById, fetchAttendancesByGame, upsertAttendance } from "@/lib/supabase-data";
+import { fetchGameById, fetchAttendancesByGame, upsertAttendance, deleteGame } from "@/lib/supabase-data";
 import { GameTypeBadge, GradeBadge, AttendanceBadge } from "@/components/common/badges";
 import type { AttendanceStatusValue } from "@/lib/constants";
 import type { Game, Attendance } from "@/lib/types";
@@ -28,7 +30,9 @@ import { Suspense } from "react";
 
 function GameDetailContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const id = searchParams.get("id") ?? "";
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [game, setGame] = useState<Game | null>(null);
   const [attendances, setAttendances] = useState<Attendance[]>([]);
@@ -41,6 +45,7 @@ function GameDetailContent() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
   useEffect(() => {
+    setIsAdmin(localStorage.getItem("sk_admin") === "true");
     if (!id) return;
     async function load() {
       setLoading(true);
@@ -120,6 +125,17 @@ function GameDetailContent() {
         </button>
         <button className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border border-border bg-surface text-[13px] font-bold text-muted active:bg-surface-variant transition-all shadow-sm touch-active"><Share2 className="w-4 h-4" />共有</button>
       </div>
+
+      {isAdmin && (
+        <div className="flex gap-2">
+          <Link href={`/games/edit?id=${game.id}`} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 border-primary/20 bg-primary-50 text-primary text-[13px] font-bold active:scale-95 transition-all">
+            <Pencil className="w-3.5 h-3.5" />編集
+          </Link>
+          <button onClick={async () => { if (!confirm("この予定を削除しますか？")) return; const ok = await deleteGame(game.id); if (ok) { alert("削除しました"); router.push("/calendar"); } else { alert("削除に失敗しました"); }}} className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-red-200 bg-red-50 text-error text-[13px] font-bold active:scale-95 transition-all">
+            <Trash2 className="w-3.5 h-3.5" />削除
+          </button>
+      </div>
+      )}
 
       <div className="bg-surface rounded-2xl border border-border divide-y divide-border/50 shadow-sm overflow-hidden">
         <InfoRow icon={<Calendar className="w-4.5 h-4.5 text-primary" />} label="日時" value={<div><p className="font-bold text-[14px]">{format(dateStart, "M月d日（E）", { locale: ja })}</p><p className="text-[12px] text-muted mt-0.5">{format(dateStart, "HH:mm")}{game.dateEnd && ` 〜 ${format(new Date(game.dateEnd), "HH:mm")}`}</p></div>} />
