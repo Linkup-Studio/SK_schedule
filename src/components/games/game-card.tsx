@@ -27,7 +27,7 @@ export function GameCard({ game, index = 0, attendanceSummary }: { game: Game; i
 
   return (
     <Link
-      href={`/games/${game.id}`}
+      href={`/games/detail?id=${game.id}`}
       className={cn(
         "block bg-surface rounded-2xl border border-border p-3.5 shadow-sm touch-active",
         "animate-fade-in-up focus:ring-2 focus:ring-primary/20 outline-none",

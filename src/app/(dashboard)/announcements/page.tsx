@@ -57,7 +57,7 @@ export default function AnnouncementsPage() {
             return (
               <Link
                 key={ann.id}
-                href={`/announcements/${ann.id}`}
+                href={`/announcements/detail?id=${ann.id}`}
                 className={cn(
                   "block bg-surface rounded-2xl border border-border p-3.5 shadow-sm touch-active focus:ring-2 focus:ring-primary/20 outline-none",
                   "animate-fade-in-up"

@@ -135,7 +135,7 @@ export default function DashboardPage() {
               return (
                 <Link
                   key={game.id}
-                  href={`/games/${game.id}`}
+                  href={`/games/detail?id=${game.id}`}
                   className="block bg-surface rounded-2xl border border-border p-3.5 active:scale-[0.98] transition-transform"
                 >
                   <div className="flex items-start gap-2.5 mb-2.5">
@@ -231,7 +231,7 @@ export default function DashboardPage() {
             {announcements.slice(0, 3).map((ann) => (
               <Link
                 key={ann.id}
-                href={`/announcements/${ann.id}`}
+                href={`/announcements/detail?id=${ann.id}`}
                 className="flex items-center gap-2.5 bg-surface rounded-xl border border-border p-3 active:scale-[0.98] transition-transform"
               >
                 <div className={cn(

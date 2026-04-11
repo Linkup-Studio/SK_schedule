@@ -48,9 +48,9 @@ export default function NotificationsPage() {
           const config = typeConfig[notif.type];
           const Icon = config.icon;
           const href = notif.referenceType === "game"
-            ? `/games/${notif.referenceId}`
+            ? `/games/detail?id=${notif.referenceId}`
             : notif.referenceType === "announcement"
-              ? `/announcements/${notif.referenceId}`
+              ? `/announcements/detail?id=${notif.referenceId}`
               : "#";
 
           return (
