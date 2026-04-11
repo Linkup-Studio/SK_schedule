@@ -15,7 +15,6 @@ export const GRADE_ALL_LABEL = "すべて";
 export const GAME_TYPES = [
   { value: "official", label: "公式戦", color: "official" },
   { value: "practice", label: "練習試合", color: "practice" },
-  { value: "tournament", label: "大会", color: "tournament" },
   { value: "other", label: "その他", color: "other" },
 ] as const;
 
