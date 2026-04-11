@@ -137,8 +137,8 @@ export function BottomNav() {
   const tabs = [
     { href: "/dashboard", icon: Home, label: "ホーム" },
     { href: "/calendar", icon: Calendar, label: "予定" },
-    ...(isAdmin ? [{ href: "/games/new", icon: Plus, label: "予定登録", isAction: true }] : []),
     { href: "/announcements", icon: Megaphone, label: "連絡" },
+    ...(isAdmin ? [{ href: "/games/new", icon: Plus, label: "予定登録", isAction: true }] : []),
   ];
 
   return (
