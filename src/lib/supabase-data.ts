@@ -91,22 +91,6 @@ export async function fetchFilteredGames(gradeFilter: GradeValue | null): Promis
   return games.filter((g) => g.grades.includes(gradeFilter));
 }
 
-/** 未来の試合のみ取得 */
-export async function fetchUpcomingGames(): Promise<Game[]> {
-  const now = new Date().toISOString();
-  const { data, error } = await supabase
-    .from("games")
-    .select("*")
-    .gte("date_start", now)
-    .order("date_start", { ascending: true });
-
-  if (error) {
-    console.error("未来の試合の取得に失敗しました:", error.message);
-    return [];
-  }
-  return (data ?? []).map(toGame);
-}
-
 /** 今後の試合を取得 */
 export async function fetchUpcomingGames(): Promise<Game[]> {
   const now = new Date();
