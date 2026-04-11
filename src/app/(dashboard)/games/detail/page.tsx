@@ -123,7 +123,6 @@ function GameDetailContent() {
         <button onClick={handleCopyInfo} className={cn("flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl border border-border bg-surface text-[13px] font-bold transition-all shadow-sm touch-active", showCopied ? "bg-green-50 border-green-200 text-attend" : "active:bg-surface-variant text-muted")}>
           {showCopied ? (<><CheckCheck className="w-4 h-4" />コピー完了</>) : (<><Copy className="w-4 h-4" />情報をコピー</>)}
         </button>
-        <button className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border border-border bg-surface text-[13px] font-bold text-muted active:bg-surface-variant transition-all shadow-sm touch-active"><Share2 className="w-4 h-4" />共有</button>
       </div>
 
       {isAdmin && (
