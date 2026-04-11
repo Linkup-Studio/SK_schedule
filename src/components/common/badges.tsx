@@ -81,8 +81,7 @@ export function AttendanceSummaryBar({
   const segments = [
     { count: attend, color: "bg-attend", label: "参加" },
     { count: absent, color: "bg-absent", label: "欠席" },
-    { count: undecided, color: "bg-undecided", label: "未定" },
-    { count: noAnswer, color: "bg-no-answer", label: "未回答" },
+    { count: noAnswer, color: "bg-gray-300", label: "未回答" },
   ];
 
   return (

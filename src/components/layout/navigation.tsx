@@ -74,7 +74,7 @@ export function Header() {
               <span className="text-white font-black text-[11px]">SK</span>
             </div>
             <span className="font-black text-sm text-primary">{TEAM_NAME}</span>
-            {isAdmin && <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200">管理者</span>}
+            {isAdmin && <Link href="/members" className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200 active:scale-95 transition-transform">管理者</Link>}
           </button>
         </div>
       </header>

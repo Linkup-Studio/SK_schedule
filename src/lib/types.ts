@@ -78,3 +78,11 @@ export interface Notification {
   isRead: boolean;
   createdAt: string;
 }
+
+/** 選手（名簿） */
+export interface Player {
+  id: string;
+  name: string;
+  grade: GradeValue;
+  createdAt: string;
+}

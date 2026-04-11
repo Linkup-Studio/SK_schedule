@@ -3,7 +3,7 @@
  * モックデータの代わりにSupabaseからデータを取得・保存する
  */
 import { supabase } from "./supabase";
-import type { Game, Attendance, Announcement, AttendanceSummary } from "./types";
+import type { Game, Attendance, Announcement, AttendanceSummary, Player } from "./types";
 import type { GradeValue, GameType, AttendanceStatusValue } from "./constants";
 
 // =============================================
@@ -317,3 +317,76 @@ export async function createAnnouncement(input: {
   }
   return data ? toAnnouncement(data) : null;
 }
+
+// =============================================
+// 選手名簿 CRUD
+// =============================================
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toPlayer(row: Record<string, any>): Player {
+  return {
+    id: row.id,
+    name: row.name,
+    grade: row.grade as GradeValue,
+    createdAt: row.created_at,
+  };
+}
+
+/** 選手一覧取得 */
+export async function fetchPlayers(): Promise<Player[]> {
+  const { data, error } = await supabase
+    .from("players")
+    .select("*")
+    .order("grade", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("選手の取得に失敗:", error.message);
+    return [];
+  }
+  return (data ?? []).map(toPlayer);
+}
+
+/** 選手追加 */
+export async function createPlayer(input: { name: string; grade: GradeValue }): Promise<Player | null> {
+  const { data, error } = await supabase
+    .from("players")
+    .insert({ name: input.name, grade: input.grade })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("選手の登録に失敗:", error.message);
+    return null;
+  }
+  return data ? toPlayer(data) : null;
+}
+
+/** 選手の学年更新 */
+export async function updatePlayerGrade(id: string, grade: GradeValue): Promise<boolean> {
+  const { error } = await supabase
+    .from("players")
+    .update({ grade })
+    .eq("id", id);
+
+  if (error) {
+    console.error("学年の更新に失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
+/** 選手削除 */
+export async function deletePlayer(id: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("players")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("選手の削除に失敗:", error.message);
+    return false;
+  }
+  return true;
+}
+
