@@ -1,26 +1,223 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ===== BallPark Design System — Mobile First ===== */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* プライマリカラー（ネイビー系） */
+  --color-primary: #1a237e;
+  --color-primary-light: #3949ab;
+  --color-primary-dark: #0d1642;
+  --color-primary-50: #e8eaf6;
+  --color-primary-100: #c5cae9;
+  --color-on-primary: #ffffff;
+
+  /* サーフェスカラー */
+  --color-background: #f5f5f8;
+  --color-surface: #ffffff;
+  --color-surface-variant: #e8eaf6;
+  --color-foreground: #1a1a2e;
+  --color-muted: #6b7280;
+  --color-border: #e8e8ee;
+
+  /* 種別カラー */
+  --color-official: #dc2626;
+  --color-practice: #2563eb;
+  --color-tournament: #16a34a;
+  --color-other: #6b7280;
+
+  /* 出欠ステータスカラー */
+  --color-attend: #16a34a;
+  --color-absent: #dc2626;
+  --color-undecided: #f59e0b;
+  --color-no-answer: #9ca3af;
+
+  /* セマンティックカラー */
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-error: #dc2626;
+  --color-info: #2563eb;
+
+  /* フォント */
+  --font-sans: "Noto Sans JP", "Inter", system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ===== Base Styles — Mobile Optimized ===== */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* スマホのoverscroll防止 */
+  overscroll-behavior-y: none;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* モバイルでの文字選択防止 */
+  -webkit-user-select: none;
+  user-select: none;
+  /* 横スクロール防止 */
+  overflow-x: hidden;
+  /* iOS Safari のbounce対策 */
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* メインスクロール領域 */
+#scroll-wrapper {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* テキスト入力フィールドは文字選択を許可 */
+input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* ===== Custom Scrollbar — モバイルでは非表示 ===== */
+::-webkit-scrollbar {
+  width: 0px;
+  display: none;
+}
+
+/* ===== Skeleton Animation ===== */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #e8eaf6 25%, #f0f2f5 50%, #e8eaf6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* ===== Baseball Spinner ===== */
+@keyframes spin-ball {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spinner-ball {
+  animation: spin-ball 1s linear infinite;
+}
+
+/* ===== Glass Card Effect — モバイルで軽量化 ===== */
+.glass-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ===== Gradient Background ===== */
+.bg-gradient-hero {
+  background: linear-gradient(135deg, #1a237e 0%, #3949ab 50%, #5c6bc0 100%);
+}
+
+.bg-gradient-subtle {
+  background: linear-gradient(180deg, #e8eaf6 0%, #f0f2f5 100%);
+}
+
+/* ===== Badge Styles ===== */
+.badge-official { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.badge-practice { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.badge-tournament { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.badge-other { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
+
+/* ===== Status Dot ===== */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ===== Mobile Safe Area ===== */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.safe-left {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.safe-right {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* ===== Fade In Animation ===== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out forwards;
+}
+
+.animate-fade-in-up-delay-1 { animation-delay: 0.08s; opacity: 0; }
+.animate-fade-in-up-delay-2 { animation-delay: 0.16s; opacity: 0; }
+.animate-fade-in-up-delay-3 { animation-delay: 0.24s; opacity: 0; }
+
+/* ===== タッチフィードバック ===== */
+.touch-active {
+  transition: transform 0.1s ease;
+}
+.touch-active:active {
+  transform: scale(0.97);
+}
+
+/* ===== Pulldown to Refresh Indicator ===== */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+/* ===== ボトムナビ用のSafeArea余白 ===== */
+.pb-nav {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 16px));
+}
+
+/* ===== iOS 入力フォーカス時のズーム防止 ===== */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+input[type="url"],
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+/* ===== Swipe Indicator ===== */
+@keyframes swipeHint {
+  0% { transform: translateX(0); opacity: 0.5; }
+  50% { transform: translateX(-10px); opacity: 1; }
+  100% { transform: translateX(0); opacity: 0.5; }
 }
