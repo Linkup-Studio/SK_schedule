@@ -129,7 +129,7 @@ export default function DashboardPage() {
 
         {upcomingGames.length > 0 ? (
           <div className="space-y-2.5">
-            {upcomingGames.map((game) => {
+            {upcomingGames.slice(0, 2).map((game) => {
               const summary = summaries[game.id] ?? { attend: 0, absent: 0, undecided: 0, noAnswer: 0, total: 0 };
               const dateStart = new Date(game.dateStart);
               return (
