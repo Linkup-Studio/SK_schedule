@@ -95,7 +95,7 @@ export default function NewGamePage() {
       const day = d.getDate();
       const hours = d.getHours().toString().padStart(2, "0");
       const mins = d.getMinutes().toString().padStart(2, "0");
-      const typeLabel = type === "official" ? "公式戦" : type === "practice_game" ? "練習試合" : "練習";
+      const typeLabel = type === "official" ? "公式戦" : type === "tournament" ? "大会" : type === "practice" ? "練習試合" : "その他";
       const annBody = [
         `【${typeLabel}】${title.trim()}`,
         `📅 ${month}月${day}日 ${hours}:${mins}`,
