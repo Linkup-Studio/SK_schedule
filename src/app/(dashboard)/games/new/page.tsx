@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Calendar, MapPin, Users, FileText, Clock, Package, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GAME_TYPES, GRADES } from "@/lib/constants";
-import { createGame } from "@/lib/supabase-data";
+import { createGame, createAnnouncement } from "@/lib/supabase-data";
 import type { GameType, GradeValue } from "@/lib/constants";
 
 /** 試合登録ページ — Supabase接続版 */
@@ -89,6 +89,30 @@ export default function NewGamePage() {
     setIsSaving(false);
 
     if (result) {
+      // 自動でお知らせも作成
+      const d = new Date(dateStart);
+      const month = d.getMonth() + 1;
+      const day = d.getDate();
+      const hours = d.getHours().toString().padStart(2, "0");
+      const mins = d.getMinutes().toString().padStart(2, "0");
+      const typeLabel = type === "official" ? "公式戦" : type === "practice_game" ? "練習試合" : "練習";
+      const annBody = [
+        `【${typeLabel}】${title.trim()}`,
+        `📅 ${month}月${day}日 ${hours}:${mins}`,
+        `📍 ${venueName.trim()}`,
+        meetingTime ? `⏰ 集合: ${meetingTime}` : "",
+        opponent ? `vs ${opponent.trim()}` : "",
+        items.trim() ? `🎒 持ち物: ${items.trim()}` : "",
+        "",
+        "出欠の回答をお願いします！",
+      ].filter(Boolean).join("\n");
+
+      await createAnnouncement({
+        title: `${typeLabel}のお知らせ: ${title.trim()}`,
+        body: annBody,
+        targetGrades: selectedGrades,
+      });
+
       alert("✅ 試合を登録しました！");
       router.push("/calendar");
     } else {
