@@ -193,7 +193,6 @@ export default function CalendarPage() {
                               "w-1.5 h-1.5 rounded-full",
                               g.type === "official" && "bg-official",
                               g.type === "practice" && "bg-practice",
-                              g.type === "tournament" && "bg-tournament",
                               g.type === "other" && "bg-other"
                             )}
                           />
