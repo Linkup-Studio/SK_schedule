@@ -43,7 +43,7 @@ export default function DashboardPage() {
         const sums: Record<string, AttendanceSummary> = {};
         await Promise.all(
           games.map(async (g) => {
-            sums[g.id] = await fetchAttendanceSummary(g.id);
+            sums[g.id] = await fetchAttendanceSummary(g.id, g.grades);
           })
         );
         setSummaries(sums);

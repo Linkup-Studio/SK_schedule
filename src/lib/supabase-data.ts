@@ -243,20 +243,25 @@ export async function upsertAttendance(input: {
 }
 
 /** 出欠サマリーを計算 */
-export async function fetchAttendanceSummary(gameId: string): Promise<AttendanceSummary> {
+export async function fetchAttendanceSummary(gameId: string, grades?: GradeValue[]): Promise<AttendanceSummary> {
   const attendances = await fetchAttendancesByGame(gameId);
   const attend = attendances.filter((a) => a.status === "attend").length;
   const absent = attendances.filter((a) => a.status === "absent").length;
-  const undecided = attendances.filter((a) => a.status === "undecided").length;
-  const total = attendances.length;
+  const undecided = 0;
 
-  return {
-    attend,
-    absent,
-    undecided,
-    noAnswer: 0, // 名前入力式のため「未回答」は管理しない
-    total,
-  };
+  // 対象学年の登録人数から未回答を計算
+  let totalPlayers = 0;
+  if (typeof window !== "undefined" && grades && grades.length > 0) {
+    const saved = localStorage.getItem("sk_player_counts");
+    if (saved) {
+      const counts = JSON.parse(saved) as Record<string, number>;
+      totalPlayers = grades.reduce((sum, g) => sum + (counts[String(g)] ?? 0), 0);
+    }
+  }
+  const noAnswer = Math.max(0, totalPlayers - attend - absent);
+  const total = attend + absent + noAnswer;
+
+  return { attend, absent, undecided, noAnswer, total };
 }
 
 // =============================================

@@ -89,9 +89,10 @@ function GameDetailContent() {
   const daysUntil = differenceInDays(dateStart, new Date());
   const attendCnt = attendances.filter((a) => a.status === "attend").length;
   const absentCnt = attendances.filter((a) => a.status === "absent").length;
-  // localStorage から登録人数を取得して未回答を計算
+  // localStorage から登録人数を取得し、試合の対象学年の人数だけで未回答を計算
   const savedCounts = typeof window !== "undefined" ? localStorage.getItem("sk_player_counts") : null;
-  const totalPlayers = savedCounts ? Object.values(JSON.parse(savedCounts) as Record<string, number>).reduce((a, b) => a + b, 0) : 0;
+  const gradeCounts = savedCounts ? JSON.parse(savedCounts) as Record<string, number> : {};
+  const totalPlayers = game.grades.reduce((sum, g) => sum + (gradeCounts[String(g)] ?? 0), 0);
   const noAnswerCnt = Math.max(0, totalPlayers - attendCnt - absentCnt);
 
   return (
