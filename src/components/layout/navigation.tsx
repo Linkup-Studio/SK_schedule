@@ -124,7 +124,6 @@ export function Header() {
 export function BottomNav() {
   const pathname = usePathname();
   const [isAdmin, setIsAdmin] = useState(false);
-  const [hasUnread, setHasUnread] = useState(false);
 
   useEffect(() => {
     const checkAdmin = () => {
@@ -133,37 +132,6 @@ export function BottomNav() {
     checkAdmin();
     window.addEventListener("storage", checkAdmin);
     return () => window.removeEventListener("storage", checkAdmin);
-  }, [pathname]);
-
-  // 未読お知らせチェック
-  useEffect(() => {
-    async function checkUnread() {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/announcements?select=created_at&order=created_at.desc&limit=1`,
-          { headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "" } }
-        );
-        const data = await res.json();
-        if (data && data.length > 0) {
-          const latest = data[0].created_at;
-          const lastSeen = localStorage.getItem("sk_last_seen_announcement");
-          setHasUnread(!lastSeen || latest > lastSeen);
-        }
-      } catch { /* ignore */ }
-    }
-    checkUnread();
-    // 30秒ごとにチェック
-    const interval = setInterval(checkUnread, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // 連絡ページを開いたら既読にする
-  useEffect(() => {
-    if (pathname === "/announcements") {
-      const now = new Date().toISOString();
-      localStorage.setItem("sk_last_seen_announcement", now);
-      setHasUnread(false);
-    }
   }, [pathname]);
 
   const tabs = [
@@ -198,8 +166,6 @@ export function BottomNav() {
             );
           }
 
-          const showBadge = tab.href === "/announcements" && hasUnread;
-
           return (
             <Link
               key={tab.href}
@@ -210,16 +176,13 @@ export function BottomNav() {
               )}
             >
               <div className={cn(
-                "w-8 h-8 flex items-center justify-center rounded-xl transition-all relative",
+                "w-8 h-8 flex items-center justify-center rounded-xl transition-all",
                 isActive && "bg-primary-50"
               )}>
                 <tab.icon
                   className="w-[22px] h-[22px]"
                   strokeWidth={isActive ? 2.5 : 1.8}
                 />
-                {showBadge && (
-                  <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse" />
-                )}
               </div>
               <span className={cn(
                 "text-[9px] mt-0.5",
