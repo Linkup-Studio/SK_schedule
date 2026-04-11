@@ -93,23 +93,7 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      {/* クイックアクション（横スクロール） */}
-      <section className="flex gap-2 overflow-x-auto -mx-4 px-4 no-scrollbar animate-fade-in-up animate-fade-in-up-delay-1">
-        <Link
-          href="/calendar"
-          className="flex-shrink-0 flex items-center gap-2 bg-surface rounded-xl border border-border px-3.5 py-2.5 active:scale-95 transition-transform"
-        >
-          <CalendarDays className="w-4 h-4 text-primary" />
-          <span className="text-xs font-bold whitespace-nowrap">スケジュール</span>
-        </Link>
-        <Link
-          href="/announcements"
-          className="flex-shrink-0 flex items-center gap-2 bg-surface rounded-xl border border-border px-3.5 py-2.5 active:scale-95 transition-transform"
-        >
-          <Megaphone className="w-4 h-4 text-primary" />
-          <span className="text-xs font-bold whitespace-nowrap">お知らせ</span>
-        </Link>
-      </section>
+
 
       {/* 今週の試合 */}
       <section className="animate-fade-in-up animate-fade-in-up-delay-2">
