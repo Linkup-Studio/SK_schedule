@@ -186,29 +186,6 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* 学年別参加率 */}
-      <section className="bg-surface rounded-2xl border border-border p-3.5 animate-fade-in-up animate-fade-in-up-delay-3">
-        <h2 className="flex items-center gap-1.5 font-black text-[13px] mb-3">
-          <TrendingUp className="w-4 h-4 text-primary" />
-          学年別参加率（直近30日）
-        </h2>
-        <div className="space-y-2.5">
-          {gradeStats.map((stat) => (
-            <div key={stat.grade} className="flex items-center gap-2.5">
-              <span className="w-7 text-[11px] font-bold text-muted">{stat.grade}</span>
-              <div className="flex-1 h-7 rounded-full bg-gray-100 overflow-hidden relative">
-                <div
-                  className={cn("h-full rounded-full transition-all duration-1000 ease-out", stat.color)}
-                  style={{ width: `${stat.rate}%` }}
-                />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-bold text-foreground">
-                  {stat.rate}%
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* 最新のお知らせ */}
       <section className="animate-fade-in-up animate-fade-in-up-delay-3">
