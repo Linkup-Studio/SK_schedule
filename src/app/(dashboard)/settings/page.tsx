@@ -61,19 +61,19 @@ export default function SettingsPage() {
             <p className="text-[12px] text-muted leading-relaxed">
               代表者パスコードを入力すると、予定の登録や削除が可能になります。
             </p>
-            <div className="flex gap-2">
+            <div className="space-y-2">
               <input 
                 type="password" 
                 placeholder="パスコード"
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
-                className="flex-1 bg-background border border-border px-3 py-2.5 rounded-xl text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm"
+                className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm"
               />
               <button 
                 type="submit"
-                className="px-4 py-2.5 bg-primary text-white font-bold text-[13px] rounded-xl active:scale-95 transition-all shadow-sm"
+                className="w-full py-3 bg-primary text-white font-bold text-[14px] rounded-xl active:scale-95 transition-all shadow-sm"
               >
-                解除
+                🔓 パスコードで解除
               </button>
             </div>
             <p className="text-[10px] text-muted">※テスト用パスコード: 1234</p>
