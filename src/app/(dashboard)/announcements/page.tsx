@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Megaphone, ChevronRight, Pin, Loader2 } from "lucide-react";
+import { Megaphone, ChevronRight, Pin, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fetchAnnouncements } from "@/lib/supabase-data";
 import { GRADES } from "@/lib/constants";
@@ -14,8 +14,10 @@ import type { Announcement } from "@/lib/types";
 export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    setIsAdmin(localStorage.getItem("sk_admin") === "true");
     async function load() {
       setLoading(true);
       const data = await fetchAnnouncements();
@@ -44,6 +46,15 @@ export default function AnnouncementsPage() {
           <Megaphone className="w-5 h-5 text-primary" />
           お知らせ
         </h1>
+        {isAdmin && (
+          <Link
+            href="/announcements/new"
+            className="flex items-center gap-1 px-3 py-1.5 bg-primary text-white text-[12px] font-bold rounded-lg active:scale-95 transition-all shadow-sm"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            作成
+          </Link>
+        )}
       </div>
 
       {/* お知らせリスト */}
