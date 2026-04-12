@@ -7,17 +7,12 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col h-[100dvh]">
-      {/* ヘッダー */}
+    <>
       <Header />
-
-      {/* メインコンテンツ（スクロール領域） */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden pb-nav">
+      <main className="pb-nav overflow-x-hidden">
         {children}
       </main>
-
-      {/* ボトムナビ */}
       <BottomNav />
-    </div>
+    </>
   );
 }
