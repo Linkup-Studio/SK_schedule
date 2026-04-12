@@ -64,7 +64,7 @@ function GameDetailContent() {
     if (!playerName.trim()) { alert("選手のお名前を入力してください"); return; }
     if (!selectedStatus) { alert("出欠（○・×・△）のいずれかを選択してください"); return; }
     setSubmitting(true);
-    const result = await upsertAttendance({ gameId: id, playerName: playerName.trim(), status: selectedStatus, reason: selectedStatus === "absent" ? reason : undefined });
+    const result = await upsertAttendance({ gameId: id, playerName: playerName.trim(), status: selectedStatus, reason: (selectedStatus === "absent" || selectedStatus === "undecided") ? reason : undefined });
     setSubmitting(false);
     if (result) {
       const fresh = await fetchAttendancesByGame(id);
@@ -94,11 +94,12 @@ function GameDetailContent() {
   const daysUntil = differenceInDays(dateStart, new Date());
   const attendCnt = attendances.filter((a) => a.status === "attend").length;
   const absentCnt = attendances.filter((a) => a.status === "absent").length;
+  const undecidedCnt = attendances.filter((a) => a.status === "undecided").length;
   // localStorage から登録人数を取得し、試合の対象学年の人数だけで未回答を計算
   const savedCounts = typeof window !== "undefined" ? localStorage.getItem("sk_player_counts") : null;
   const gradeCounts = savedCounts ? JSON.parse(savedCounts) as Record<string, number> : {};
   const totalPlayers = game.grades.reduce((sum, g) => sum + (gradeCounts[String(g)] ?? 0), 0);
-  const noAnswerCnt = Math.max(0, totalPlayers - attendCnt - absentCnt);
+  const noAnswerCnt = Math.max(0, totalPlayers - attendCnt - absentCnt - undecidedCnt);
 
   return (
     <div className="px-4 py-4 space-y-4 pb-20">
@@ -152,10 +153,16 @@ function GameDetailContent() {
           <div className="space-y-3">
             <div><label className="text-[11px] font-bold text-muted ml-1 mb-1 block">選手のお名前（必須）</label><input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="例: 佐藤 太郎" className="w-full bg-background border border-border px-4 py-3 rounded-xl text-[15px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" /></div>
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
-                {([{ status: "attend" as AttendanceStatusValue, icon: "○", label: "参加", activeClass: "bg-attend text-white shadow-attend/30 border-attend" }, { status: "absent" as AttendanceStatusValue, icon: "×", label: "欠席", activeClass: "bg-absent text-white shadow-absent/30 border-absent" }]).map((config) => (<button key={config.status} type="button" onClick={() => setSelectedStatus(config.status)} className={cn("flex flex-col items-center justify-center py-4 px-2 rounded-xl border-2 font-bold transition-all shadow-sm active:scale-95 outline-none touch-active", selectedStatus === config.status ? cn(config.activeClass, "scale-[1.02] shadow-md") : "border-border bg-white text-muted hover:bg-surface-variant active:bg-border")}><span className="text-2xl font-black">{config.icon}</span><span className="text-[10px] mt-0.5">{config.label}</span></button>))}
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { status: "attend" as AttendanceStatusValue, icon: "○", label: "参加", activeClass: "bg-attend text-white shadow-attend/30 border-attend" },
+                  { status: "absent" as AttendanceStatusValue, icon: "×", label: "欠席", activeClass: "bg-absent text-white shadow-absent/30 border-absent" },
+                  { status: "undecided" as AttendanceStatusValue, icon: "△", label: "未定", activeClass: "bg-undecided text-white shadow-undecided/30 border-undecided" },
+                ]).map((config) => (<button key={config.status} type="button" onClick={() => setSelectedStatus(config.status)} className={cn("flex flex-col items-center justify-center py-4 px-2 rounded-xl border-2 font-bold transition-all shadow-sm active:scale-95 outline-none touch-active", selectedStatus === config.status ? cn(config.activeClass, "scale-[1.02] shadow-md") : "border-border bg-white text-muted hover:bg-surface-variant active:bg-border")}><span className="text-2xl font-black">{config.icon}</span><span className="text-[10px] mt-0.5">{config.label}</span></button>))}
               </div>
               {selectedStatus === "absent" && (<div className="bg-red-50/50 border border-red-100 rounded-xl p-3 animate-fade-in-up"><label className="text-[10px] font-bold text-absent flex items-center gap-1 mb-1">欠席理由（任意）</label><input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="例: 塾のため" className="w-full px-3 py-2.5 rounded-xl border border-red-200 bg-white text-[13px] focus:outline-none focus:ring-2 focus:ring-absent/30 shadow-sm" /></div>)}
+              {selectedStatus === "undecided" && (<div className="bg-amber-50/50 border border-amber-100 rounded-xl p-3 animate-fade-in-up"><label className="text-[10px] font-bold text-undecided flex items-center gap-1 mb-1">未定の理由（任意）</label><input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="例: 体調次第で判断します" className="w-full px-3 py-2.5 rounded-xl border border-amber-200 bg-white text-[13px] focus:outline-none focus:ring-2 focus:ring-undecided/30 shadow-sm" /></div>)}
+              <p className="text-center text-[10px] text-muted">※同じお名前で再送信すると回答を修正できます</p>
               <div className="pt-2"><button type="button" onClick={handleFinalSubmit} disabled={submitting} className={cn("w-full py-3.5 rounded-xl font-black text-[15px] shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 touch-active", submitting ? "bg-primary/50 text-white cursor-not-allowed" : "bg-primary text-white active:bg-primary-light active:scale-[0.98]")}>{submitting ? (<><Loader2 className="w-5 h-5 animate-spin" />送信中...</>) : (<><CheckCheck className="w-5 h-5" />この出欠を送信する</>)}</button></div>
             </div>
           </div>
@@ -167,6 +174,7 @@ function GameDetailContent() {
         <div className="flex gap-2 mb-3">
           <div className="flex-1 bg-attend/10 text-attend border border-attend/20 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">参加</span><span className="text-[16px] font-black">{attendCnt}</span></div>
           <div className="flex-1 bg-absent/10 text-absent border border-absent/20 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">欠席</span><span className="text-[16px] font-black">{absentCnt}</span></div>
+          <div className="flex-1 bg-undecided/10 text-undecided border border-undecided/20 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">未定</span><span className="text-[16px] font-black">{undecidedCnt}</span></div>
           <div className="flex-1 bg-gray-100 text-muted border border-gray-200 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">未回答</span><span className="text-[16px] font-black">{noAnswerCnt}</span></div>
         </div>
         <div className="pt-2">
