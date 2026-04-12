@@ -200,14 +200,17 @@ export default function DashboardPage() {
                   ann.isPinned ? "bg-error" : "bg-primary"
                 )} />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1 flex-wrap">
                     {ann.isPinned && (
                       <span className="text-[9px] font-bold text-error bg-red-50 px-1 py-0.5 rounded">
                         📌 固定
                       </span>
                     )}
-                    <h3 className="font-bold text-[13px] truncate">{ann.title}</h3>
+                    {ann.targetGrades.length > 0 && ann.targetGrades.map((g) => (
+                      <GradeBadge key={g} grade={g} />
+                    ))}
                   </div>
+                  <h3 className="font-bold text-[13px] truncate mt-0.5">{ann.title}</h3>
                   <p className="text-[10px] text-muted mt-0.5">
                     {format(new Date(ann.createdAt), "M/d", { locale: ja })} · {ann.createdByName}
                   </p>
