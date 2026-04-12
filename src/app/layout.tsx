@@ -50,7 +50,8 @@ export default function RootLayout({
       <head>
         {/* iOS PWA対応 */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
+        <meta name="apple-mobile-web-app-title" content="BallPark" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
       </head>
       <body className="h-full">{children}</body>
     </html>
