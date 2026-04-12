@@ -57,10 +57,6 @@ function AnnouncementDetailContent() {
         <div className="p-4 sm:p-5"><div className="text-[14px] leading-loose whitespace-pre-wrap text-foreground">{ann.body}</div></div>
       </article>
 
-      <div className="bg-surface rounded-2xl border border-border p-4 animate-fade-in-up animate-fade-in-up-delay-1 shadow-sm">
-        <h2 className="font-black text-[13px] mb-2 flex items-center gap-1.5">💬 コメント</h2>
-        <div className="bg-surface-variant/30 rounded-xl p-5 text-center border border-border/50"><p className="text-[12px] font-bold text-muted mb-0.5">コメントはまだありません</p><p className="text-[10px] text-muted leading-relaxed">質問や連絡がある場合は<br/>ここに投稿できるようになります</p></div>
-      </div>
     </div>
   );
 }
