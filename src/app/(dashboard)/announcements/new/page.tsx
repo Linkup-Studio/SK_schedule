@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { ArrowLeft, Save, Megaphone, Users, FileText, Pin, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,26 @@ export default function NewAnnouncementPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+
+  const [images, setImages] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setImages((prev) => {
+        const combined = [...prev, ...newFiles];
+        return combined.slice(0, 3); // 最大3枚
+      });
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const toggleGrade = (grade: GradeValue) => {
     setSelectedGrades((prev) =>
@@ -152,11 +172,42 @@ export default function NewAnnouncementPage() {
             <Image className="w-4 h-4 text-primary" />
             画像添付（任意・最大3枚）
           </label>
-          <div className="bg-background border-2 border-dashed border-border rounded-xl p-5 text-center active:bg-primary-50/50 active:border-primary/30 transition-all outline-none touch-active">
+          <label 
+            htmlFor="image-upload"
+            className="cursor-pointer block bg-background border-2 border-dashed border-border rounded-xl p-5 text-center active:bg-primary-50/50 active:border-primary/30 transition-all outline-none touch-active"
+          >
+            <input 
+              id="image-upload"
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleImageChange}
+              accept="image/jpeg, image/png"
+              multiple
+              className="hidden" 
+            />
             <Image className="w-7 h-7 text-muted/50 mx-auto mb-2" />
             <p className="text-[13px] font-bold text-muted mb-0.5">タップして画像を選択</p>
             <p className="text-[10px] font-medium text-muted/80">JPEG, PNG (各5MB以下)</p>
-          </div>
+          </label>
+
+          {/* 画像プレビュー */}
+          {images.length > 0 && (
+            <div className="flex gap-2 mt-3 flex-wrap">
+              {images.map((file, idx) => (
+                <div key={idx} className="relative w-16 h-16 rounded-md overflow-hidden border border-border shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
+                  <button 
+                    type="button" 
+                    onClick={() => removeImage(idx)}
+                    className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-[12px] pb-[1px]"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* プレビュー表示 */}
