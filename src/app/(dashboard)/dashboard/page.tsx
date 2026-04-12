@@ -85,7 +85,14 @@ export default function DashboardPage() {
             {format(new Date(), "M月d日（E）", { locale: ja })}
           </p>
           <h1 className="text-lg font-black mb-0.5">
-            おはようございます 👋
+            {(() => {
+              const h = new Date().getHours();
+              const m = new Date().getMinutes();
+              const t = h * 60 + m; // 分換算
+              if (t >= 181 && t <= 600) return "おはようございます 👋";  // 3:01〜10:00
+              if (t >= 601 && t <= 1080) return "こんにちは 👋";          // 10:01〜18:00
+              return "こんばんは 🌙";                                     // 18:01〜3:00
+            })()}
           </h1>
           <p className="text-xs text-primary-100">
             {TEAM_NAME}の予定をチェック
