@@ -348,6 +348,16 @@ export async function createAnnouncement(input: {
   return data ? toAnnouncement(data) : null;
 }
 
+/** お知らせを削除 */
+export async function deleteAnnouncement(id: string): Promise<boolean> {
+  const { error } = await supabase.from("announcements").delete().eq("id", id);
+  if (error) {
+    console.error("お知らせの削除に失敗しました:", error.message);
+    return false;
+  }
+  return true;
+}
+
 // =============================================
 // 選手名簿 CRUD
 // =============================================
