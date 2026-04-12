@@ -301,8 +301,24 @@ export async function fetchAttendanceSummary(gameId: string, grades?: GradeValue
 // お知らせ（Announcements）
 // =============================================
 
-/** お知らせ全件取得（ピン留め優先、新しい順） */
+/** お知らせ全件取得（ピン留め優先、新しい順）+ 3週間経過分を自動削除 */
 export async function fetchAnnouncements(): Promise<Announcement[]> {
+  // 3週間前の日時を算出
+  const threeWeeksAgo = new Date();
+  threeWeeksAgo.setDate(threeWeeksAgo.getDate() - 21);
+
+  // ピン留めされていない古いお知らせを自動削除
+  const { error: deleteError } = await supabase
+    .from("announcements")
+    .delete()
+    .eq("is_pinned", false)
+    .lt("created_at", threeWeeksAgo.toISOString());
+
+  if (deleteError) {
+    console.error("古いお知らせの自動削除に失敗しました:", deleteError.message);
+  }
+
+  // 残りのお知らせを取得
   const { data, error } = await supabase
     .from("announcements")
     .select("*")
