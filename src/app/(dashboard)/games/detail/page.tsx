@@ -22,7 +22,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { fetchGameById, fetchAttendancesByGame, upsertAttendance, deleteGame } from "@/lib/supabase-data";
+import { fetchGameById, fetchAttendancesByGame, upsertAttendance, deleteGame, deleteAttendance } from "@/lib/supabase-data";
 import { GameTypeBadge, GradeBadge, AttendanceBadge } from "@/components/common/badges";
 import type { AttendanceStatusValue } from "@/lib/constants";
 import type { Game, Attendance } from "@/lib/types";
@@ -179,7 +179,7 @@ function GameDetailContent() {
         </div>
         <div className="pt-2">
           <div className="divide-y divide-border/50 rounded-xl border border-border overflow-hidden">
-            {attendances.length > 0 ? attendances.map((att) => (<div key={att.id} className="flex items-center justify-between px-3 py-2.5 bg-white"><div className="flex items-center gap-2.5 min-w-0 flex-1"><p className="text-[13px] font-bold truncate flex-1">{att.userName}</p>{att.reason && <span className="text-[9px] text-error font-medium truncate max-w-[120px]">理由: {att.reason}</span>}</div><div className="shrink-0 ml-2"><AttendanceBadge status={att.status} /></div></div>)) : (<div className="p-4 text-center text-[12px] text-muted">まだ出欠の回答はありません</div>)}
+            {attendances.length > 0 ? attendances.map((att) => (<div key={att.id} className="flex items-center justify-between px-3 py-2.5 bg-white"><div className="flex items-center gap-2.5 min-w-0 flex-1"><p className="text-[13px] font-bold truncate flex-1">{att.userName}</p>{att.reason && <span className="text-[9px] text-error font-medium truncate max-w-[120px]">理由: {att.reason}</span>}</div><div className="shrink-0 ml-2 flex items-center gap-1.5"><AttendanceBadge status={att.status} />{isAdmin && <button onClick={async () => { if (!confirm(`${att.userName} の回答を削除しますか？`)) return; setAttendances(prev => prev.filter(a => a.id !== att.id)); const ok = await deleteAttendance(att.id); if (!ok) { alert("削除に失敗しました"); const fresh = await fetchAttendancesByGame(id); setAttendances(fresh); }}} className="w-6 h-6 flex items-center justify-center rounded-lg bg-error/10 text-error active:scale-90 transition-transform"><Trash2 className="w-3 h-3" /></button>}</div></div>)) : (<div className="p-4 text-center text-[12px] text-muted">まだ出欠の回答はありません</div>)}
           </div>
         </div>
       </div>

@@ -267,7 +267,15 @@ export async function upsertAttendance(input: {
   return data ? toAttendance(data) : null;
 }
 
-/** 出欠サマリーを計算 */
+/** 出欠を削除 */
+export async function deleteAttendance(id: string): Promise<boolean> {
+  const { error } = await supabase.from("attendances").delete().eq("id", id);
+  if (error) {
+    console.error("出欠の削除に失敗しました:", error.message);
+    return false;
+  }
+  return true;
+}
 export async function fetchAttendanceSummary(gameId: string, grades?: GradeValue[]): Promise<AttendanceSummary> {
   const attendances = await fetchAttendancesByGame(gameId);
   const attend = attendances.filter((a) => a.status === "attend").length;
