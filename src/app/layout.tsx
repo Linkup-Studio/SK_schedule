@@ -45,14 +45,14 @@ export default function RootLayout({
   return (
     <html
       lang="ja"
-      className={`${notoSansJP.variable} ${inter.variable} h-full antialiased`}
+      className={`${notoSansJP.variable} ${inter.variable} antialiased`}
     >
       <head>
         {/* iOS PWA対応 */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="BallPark" />
       </head>
-      <body className="h-full">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }

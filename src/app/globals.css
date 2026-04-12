@@ -49,6 +49,7 @@ html {
   text-size-adjust: 100%;
   /* スマホのoverscroll防止 */
   overscroll-behavior-y: none;
+  height: 100dvh;
 }
 
 body {
@@ -63,10 +64,9 @@ body {
   /* 横スクロール防止 */
   overflow-x: hidden;
   /* iOS Safari のbounce対策 */
-  position: fixed;
   width: 100%;
-  height: 100%;
-  overflow: hidden;
+  height: 100dvh;
+  overflow-x: hidden;
 }
 
 /* メインスクロール領域 */
