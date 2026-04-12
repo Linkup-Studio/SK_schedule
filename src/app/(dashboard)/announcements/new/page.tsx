@@ -2,13 +2,16 @@
 
 import { useState, useRef } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Megaphone, Users, FileText, Pin, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GRADES } from "@/lib/constants";
 import type { GradeValue } from "@/lib/constants";
+import { createAnnouncement } from "@/lib/supabase-data";
 
 /** お知らせ投稿ページ — モバイル最適化 */
 export default function NewAnnouncementPage() {
+  const router = useRouter();
   const [selectedGrades, setSelectedGrades] = useState<GradeValue[]>([1, 2, 3]);
   const [isPinned, setIsPinned] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -51,10 +54,31 @@ export default function NewAnnouncementPage() {
       alert("タイトルと本文を入力してください");
       return;
     }
+    if (selectedGrades.length === 0) {
+      alert("対象学年を1つ以上選択してください");
+      return;
+    }
+    
     setIsSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    
+    // 画像のアップロードはバックエンド側の仕様により現在未対応のためテキストのみ保存
+    const newAnnouncement = await createAnnouncement({
+      title: title.trim(),
+      body: body.trim(),
+      targetGrades: selectedGrades,
+      isPinned: isPinned,
+    });
+
     setIsSaving(false);
-    alert("お知らせを投稿しました（モック）");
+
+    if (newAnnouncement) {
+      if (images.length > 0) {
+        alert("お知らせを投稿しました！\n（※画像の添付機能は開発中のため、現在はテキストのみ保存されています）");
+      }
+      router.push("/announcements");
+    } else {
+      alert("投稿に失敗しました。もう一度お試しください。");
+    }
   };
 
   return (
