@@ -149,7 +149,7 @@ function GameDetailContent() {
         <div className="bg-surface rounded-2xl border-2 border-primary/20 p-4 space-y-4 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-primary-light" />
           {submitSuccess && (<div className="bg-attend/10 border border-attend/20 rounded-xl p-3 text-center animate-fade-in-up"><p className="text-attend font-bold text-[13px]">✅ 出欠を保存しました！</p></div>)}
-          <div className="text-center mb-2"><h2 className="font-black text-[15px] mb-1">出欠を送信</h2><p className="text-[11px] text-muted">{game.rsvpDeadline ? `締切: ${format(new Date(game.rsvpDeadline), "M月d日（E）", { locale: ja })}まで` : "いつでも回答・変更できます"}</p></div>
+          <div className="text-center mb-2"><h2 className="font-black text-[15px] mb-2">出欠を送信</h2>{game.rsvpDeadline ? <div className="inline-flex items-center gap-1.5 bg-error/10 border-2 border-error/25 rounded-xl px-4 py-2"><span className="text-[13px] font-black text-error">⏰ 締切: {format(new Date(game.rsvpDeadline), "M月d日（E）", { locale: ja })}まで</span></div> : <p className="text-[11px] text-muted">いつでも回答・変更できます</p>}</div>
           <div className="space-y-3">
             <div><label className="text-[11px] font-bold text-muted ml-1 mb-1 block">選手のお名前（必須）</label><input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="例: 佐藤 太郎" className="w-full bg-background border border-border px-4 py-3 rounded-xl text-[15px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" /></div>
             <div className="space-y-3">
