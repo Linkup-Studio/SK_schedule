@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Megaphone, Users, FileText, Pin, Image } from "lucide-react";
+import { ArrowLeft, Save, Megaphone, Users, FileText, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GRADES } from "@/lib/constants";
 import type { GradeValue } from "@/lib/constants";
@@ -18,25 +18,7 @@ export default function NewAnnouncementPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
 
-  const [images, setImages] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setImages((prev) => {
-        const combined = [...prev, ...newFiles];
-        return combined.slice(0, 3); // 最大3枚
-      });
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
 
   const toggleGrade = (grade: GradeValue) => {
     setSelectedGrades((prev) =>
@@ -72,9 +54,6 @@ export default function NewAnnouncementPage() {
     setIsSaving(false);
 
     if (newAnnouncement) {
-      if (images.length > 0) {
-        alert("お知らせを投稿しました！\n（※画像の添付機能は開発中のため、現在はテキストのみ保存されています）");
-      }
       router.push("/announcements");
     } else {
       alert("投稿に失敗しました。もう一度お試しください。");
@@ -190,49 +169,6 @@ export default function NewAnnouncementPage() {
           </button>
         </div>
 
-        {/* 画像添付 */}
-        <div className="bg-surface rounded-2xl border border-border p-3.5 shadow-sm animate-fade-in-up animate-fade-in-up-delay-2">
-          <label className="flex items-center gap-1.5 text-[11px] font-bold text-muted mb-2 pl-0.5">
-            <Image className="w-4 h-4 text-primary" />
-            画像添付（任意・最大3枚）
-          </label>
-          <label 
-            htmlFor="image-upload"
-            className="cursor-pointer block bg-background border-2 border-dashed border-border rounded-xl p-5 text-center active:bg-primary-50/50 active:border-primary/30 transition-all outline-none touch-active"
-          >
-            <input 
-              id="image-upload"
-              type="file" 
-              ref={fileInputRef}
-              onChange={handleImageChange}
-              accept="image/jpeg, image/png"
-              multiple
-              className="hidden" 
-            />
-            <Image className="w-7 h-7 text-muted/50 mx-auto mb-2" />
-            <p className="text-[13px] font-bold text-muted mb-0.5">タップして画像を選択</p>
-            <p className="text-[10px] font-medium text-muted/80">JPEG, PNG (各5MB以下)</p>
-          </label>
-
-          {/* 画像プレビュー */}
-          {images.length > 0 && (
-            <div className="flex gap-2 mt-3 flex-wrap">
-              {images.map((file, idx) => (
-                <div key={idx} className="relative w-16 h-16 rounded-md overflow-hidden border border-border shadow-sm">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={URL.createObjectURL(file)} alt="preview" className="w-full h-full object-cover" />
-                  <button 
-                    type="button" 
-                    onClick={() => removeImage(idx)}
-                    className="absolute top-1 right-1 bg-black/60 text-white rounded-full w-5 h-5 flex items-center justify-center text-[12px] pb-[1px]"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
 
         {/* プレビュー表示 */}
         {(title || body) && (
