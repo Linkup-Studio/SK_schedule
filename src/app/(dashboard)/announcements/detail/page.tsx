@@ -46,7 +46,7 @@ function AnnouncementDetailContent() {
         <div className="bg-gradient-subtle p-4 border-b border-border/50">
           <div className="flex items-center gap-1.5 mb-2 flex-wrap">
             {ann.isPinned && (<span className="text-[9px] font-bold text-error bg-error/10 px-1.5 py-0.5 rounded-md border border-error/20">📌 固定</span>)}
-            <span className="text-[9px] font-medium text-muted bg-white px-1.5 py-0.5 rounded-md border border-border shadow-sm">宛先: {gradeLabels}</span>
+            <span className="text-[11px] font-black text-primary bg-primary-50 px-2 py-1 rounded-lg border-2 border-primary/30">📨 宛先: {gradeLabels}</span>
           </div>
           <h1 className="text-base font-black leading-tight mb-2">{ann.title}</h1>
           <div className="flex items-center gap-2 mt-3 text-[11px] text-muted bg-white/50 py-1.5 px-2 rounded-xl border border-white/60">

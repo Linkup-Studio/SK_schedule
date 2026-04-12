@@ -95,8 +95,8 @@ export default function AnnouncementsPage() {
                           📌 固定
                         </span>
                       )}
-                      <span className="text-[9px] font-medium text-muted bg-surface-variant/80 px-1.5 py-0.5 rounded border border-border">
-                        宛先: {gradeLabels}
+                      <span className="text-[11px] font-black text-primary bg-primary-50 px-2 py-1 rounded-lg border-2 border-primary/30">
+                        📨 宛先: {gradeLabels}
                       </span>
                     </div>
                     <h3 className="font-bold text-[13px] truncate pr-1">{ann.title}</h3>
