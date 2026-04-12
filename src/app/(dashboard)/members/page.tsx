@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { ArrowLeft, Users, Minus, Plus, Settings, Megaphone, Trash2, Loader2 } from "lucide-react";
+import { ArrowLeft, Users, Minus, Plus, Settings, Megaphone, Trash2, Loader2, Pencil } from "lucide-react";
 import { GRADES } from "@/lib/constants";
 import { fetchAnnouncements, deleteAnnouncement } from "@/lib/supabase-data";
 import type { Announcement } from "@/lib/types";
@@ -120,7 +120,7 @@ export default function AdminMenuPage() {
       <section className="space-y-3 pt-4 border-t border-border/50">
         <h2 className="font-black text-base flex items-center gap-1.5">
           <Megaphone className="w-4 h-4 text-primary" />
-          お知らせの管理（削除）
+          お知らせの管理
         </h2>
         
         <div className="space-y-2">
@@ -134,20 +134,31 @@ export default function AdminMenuPage() {
             </div>
           ) : (
             announcements.map((ann) => (
-              <div key={ann.id} className="bg-surface rounded-2xl border border-border p-3.5 shadow-sm flex items-center justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-[14px] font-black leading-snug truncate">{ann.title}</h3>
-                  <p className="text-[10px] text-muted mt-1">
-                    {format(new Date(ann.createdAt), "yyyy/MM/dd HH:mm", { locale: ja })}
-                  </p>
+              <div key={ann.id} className="bg-surface rounded-2xl border border-border p-3.5 shadow-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[14px] font-black leading-snug truncate">{ann.title}</h3>
+                    <p className="text-[10px] text-muted mt-1">
+                      {format(new Date(ann.createdAt), "yyyy/MM/dd HH:mm", { locale: ja })}
+                    </p>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-1.5">
+                    <Link
+                      href={`/announcements/edit?id=${ann.id}`}
+                      className="flex items-center gap-1 px-3 py-2 bg-primary/10 text-primary rounded-xl font-bold text-[11px] active:scale-95 transition-transform"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      編集
+                    </Link>
+                    <button
+                      onClick={() => handleDeleteAnnouncement(ann.id)}
+                      className="flex items-center gap-1 px-3 py-2 bg-error/10 text-error rounded-xl font-bold text-[11px] active:scale-95 transition-transform"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      削除
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => handleDeleteAnnouncement(ann.id)}
-                  className="shrink-0 flex items-center gap-1 px-3 py-2 bg-error/10 text-error rounded-xl font-bold text-[11px] active:scale-95 transition-transform"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  削除
-                </button>
               </div>
             ))
           )}

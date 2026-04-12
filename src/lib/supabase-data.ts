@@ -366,6 +366,32 @@ export async function deleteAnnouncement(id: string): Promise<boolean> {
   return true;
 }
 
+/** お知らせを更新 */
+export async function updateAnnouncement(id: string, input: {
+  title: string;
+  body: string;
+  targetGrades: number[];
+  isPinned?: boolean;
+}): Promise<Announcement | null> {
+  const { data, error } = await supabase
+    .from("announcements")
+    .update({
+      title: input.title,
+      body: input.body,
+      target_grades: input.targetGrades,
+      is_pinned: input.isPinned ?? false,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("お知らせの更新に失敗しました:", error.message);
+    return null;
+  }
+  return data ? toAnnouncement(data) : null;
+}
+
 // =============================================
 // 選手名簿 CRUD
 // =============================================
