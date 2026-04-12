@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { ArrowLeft, Users, Minus, Plus, Settings, Megaphone, Trash2, Loader2, Pencil } from "lucide-react";
 import { GRADES } from "@/lib/constants";
-import { fetchAnnouncements, deleteAnnouncement } from "@/lib/supabase-data";
+import { fetchAnnouncements, deleteAnnouncement, cleanupOldAnnouncements } from "@/lib/supabase-data";
 import type { Announcement } from "@/lib/types";
 
 /** 管理者専用 — 管理者メニューページ */
@@ -33,6 +33,8 @@ export default function AdminMenuPage() {
 
   async function loadAnnouncements() {
     setLoadingAnnouncements(true);
+    // 管理者がページを開いたタイミングで3週間経過分を自動削除
+    await cleanupOldAnnouncements();
     const data = await fetchAnnouncements();
     setAnnouncements(data);
     setLoadingAnnouncements(false);
