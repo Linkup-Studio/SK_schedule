@@ -38,6 +38,12 @@ export default function AnnouncementsPage() {
     );
   }
 
+  const gradeColors: Record<number, string> = {
+    1: "text-blue-700 bg-blue-50 border-blue-200",
+    2: "text-emerald-700 bg-emerald-50 border-emerald-200",
+    3: "text-purple-700 bg-purple-50 border-purple-200",
+  };
+
   return (
     <div className="px-4 py-4 space-y-4 pb-20">
       {/* ヘッダー */}
@@ -100,11 +106,6 @@ export default function AnnouncementsPage() {
                       ) : (
                         ann.targetGrades.map(g => {
                           const gradeConfig = GRADES.find(gr => gr.value === g);
-                          const gradeColors: Record<number, string> = {
-                            1: "text-blue-700 bg-blue-50 border-blue-200",
-                            2: "text-emerald-700 bg-emerald-50 border-emerald-200",
-                            3: "text-purple-700 bg-purple-50 border-purple-200",
-                          };
                           return (
                             <span key={g} className={cn("text-[11px] font-black px-2 py-1 rounded-lg border-2", gradeColors[g] || "text-primary bg-primary-50 border-primary/30")}>
                               📨 宛先: {gradeConfig?.label}
