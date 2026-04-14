@@ -6,6 +6,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { fetchAnnouncementById } from "@/lib/supabase-data";
 import { GRADES } from "@/lib/constants";
 import type { Announcement } from "@/lib/types";
@@ -35,7 +36,12 @@ function AnnouncementDetailContent() {
     return (<div className="px-4 py-12 text-center"><h1 className="text-base font-bold mb-2">お知らせが見つかりません</h1><Link href="/announcements" className="text-primary font-bold text-[13px]">お知らせ一覧に戻る</Link></div>);
   }
 
-  const gradeLabels = ann.targetGrades.length === 3 ? "全学年" : ann.targetGrades.map(g => GRADES.find(gr => gr.value === g)?.label).join("・");
+  const isAllGrades = ann.targetGrades.length === 3;
+  const gradeColors: Record<number, string> = {
+    1: "text-blue-700 bg-blue-50 border-blue-200",
+    2: "text-emerald-700 bg-emerald-50 border-emerald-200",
+    3: "text-purple-700 bg-purple-50 border-purple-200",
+  };
   const authorName = ann.createdByName ?? "管理者";
 
   return (
@@ -46,7 +52,16 @@ function AnnouncementDetailContent() {
         <div className="bg-gradient-subtle p-4 border-b border-border/50">
           <div className="flex items-center gap-1.5 mb-2 flex-wrap">
             {ann.isPinned && (<span className="text-[9px] font-bold text-error bg-error/10 px-1.5 py-0.5 rounded-md border border-error/20">📌 固定</span>)}
-            <span className="text-[11px] font-black text-primary bg-primary-50 px-2 py-1 rounded-lg border-2 border-primary/30">📨 宛先: {gradeLabels}</span>
+            {isAllGrades ? (
+              <span className="text-[11px] font-black text-slate-600 bg-gradient-to-r from-blue-50 via-emerald-50 to-purple-50 px-2 py-1 rounded-lg border-2 border-slate-200">📨 宛先: 全学年</span>
+            ) : (
+              ann.targetGrades.map(g => {
+                const gradeConfig = GRADES.find(gr => gr.value === g);
+                return (
+                  <span key={g} className={cn("text-[11px] font-black px-2 py-1 rounded-lg border-2", gradeColors[g] || "text-primary bg-primary-50 border-primary/30")}>📨 宛先: {gradeConfig?.label}</span>
+                );
+              })
+            )}
           </div>
           <h1 className="text-base font-black leading-tight mb-2">{ann.title}</h1>
           <div className="flex items-center gap-2 mt-3 text-[11px] text-muted bg-white/50 py-1.5 px-2 rounded-xl border border-white/60">

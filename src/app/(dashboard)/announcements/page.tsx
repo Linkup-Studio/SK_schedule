@@ -61,9 +61,7 @@ export default function AnnouncementsPage() {
       {announcements.length > 0 ? (
         <div className="space-y-2.5">
           {announcements.map((ann, i) => {
-            const gradeLabels = ann.targetGrades.length === 3
-              ? "全学年"
-              : ann.targetGrades.map(g => GRADES.find(gr => gr.value === g)?.label).join("・");
+            const isAllGrades = ann.targetGrades.length === 3;
 
             return (
               <Link
@@ -95,9 +93,25 @@ export default function AnnouncementsPage() {
                           📌 固定
                         </span>
                       )}
-                      <span className="text-[11px] font-black text-primary bg-primary-50 px-2 py-1 rounded-lg border-2 border-primary/30">
-                        📨 宛先: {gradeLabels}
-                      </span>
+                      {isAllGrades ? (
+                        <span className="text-[11px] font-black text-slate-600 bg-gradient-to-r from-blue-50 via-emerald-50 to-purple-50 px-2 py-1 rounded-lg border-2 border-slate-200">
+                          📨 宛先: 全学年
+                        </span>
+                      ) : (
+                        ann.targetGrades.map(g => {
+                          const gradeConfig = GRADES.find(gr => gr.value === g);
+                          const gradeColors: Record<number, string> = {
+                            1: "text-blue-700 bg-blue-50 border-blue-200",
+                            2: "text-emerald-700 bg-emerald-50 border-emerald-200",
+                            3: "text-purple-700 bg-purple-50 border-purple-200",
+                          };
+                          return (
+                            <span key={g} className={cn("text-[11px] font-black px-2 py-1 rounded-lg border-2", gradeColors[g] || "text-primary bg-primary-50 border-primary/30")}>
+                              📨 宛先: {gradeConfig?.label}
+                            </span>
+                          );
+                        })
+                      )}
                     </div>
                     <h3 className="font-bold text-[13px] truncate pr-1">{ann.title}</h3>
                     <p className="text-[11px] text-muted line-clamp-2 mt-0.5 leading-relaxed">
