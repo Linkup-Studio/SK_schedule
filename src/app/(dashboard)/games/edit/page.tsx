@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Save, Calendar, MapPin, Users, FileText, Clock, Package, Loader2 } from "lucide-react";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { GAME_TYPES, GRADES } from "@/lib/constants";
 import { fetchGameById, updateGame } from "@/lib/supabase-data";
@@ -44,15 +43,30 @@ function EditGameContent() {
       const game = await fetchGameById(gameId);
       if (!game) { alert("試合が見つかりません"); router.push("/calendar"); return; }
 
+      // 安全な日付フォーマット関数（無効な日付の場合は空文字を返す）
+      const formatLocalInput = (dateStr: string | null | undefined, type: 'datetime' | 'date' = 'datetime') => {
+        if (!dateStr) return "";
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return ""; // 不正な日付をガード
+        const pad = (n: number) => n.toString().padStart(2, '0');
+        const YYYY = d.getFullYear();
+        const MM = pad(d.getMonth() + 1);
+        const DD = pad(d.getDate());
+        if (type === 'date') return `${YYYY}-${MM}-${DD}`;
+        
+        const hh = pad(d.getHours());
+        const mm = pad(d.getMinutes());
+        return `${YYYY}-${MM}-${DD}T${hh}:${mm}`;
+      };
+
       setType(game.type);
       setSelectedGrades(game.grades);
       setTitle(game.title);
       setOpponent(game.opponent ?? "");
-      // 日本時間（ローカルタイム）として正しく表示するため、date-fnsのformatを使用
-      setDateStart(game.dateStart ? format(new Date(game.dateStart), "yyyy-MM-dd'T'HH:mm") : "");
-      setDateEnd(game.dateEnd ? format(new Date(game.dateEnd), "yyyy-MM-dd'T'HH:mm") : "");
+      setDateStart(formatLocalInput(game.dateStart, 'datetime'));
+      setDateEnd(formatLocalInput(game.dateEnd, 'datetime'));
       setMeetingTime(game.meetingTime ?? "");
-      setRsvpDeadline(game.rsvpDeadline ? format(new Date(game.rsvpDeadline), "yyyy-MM-dd") : "");
+      setRsvpDeadline(formatLocalInput(game.rsvpDeadline, 'date'));
       setVenueName(game.venueName);
       setVenueAddress(game.venueAddress ?? "");
       setMeetingPlace(game.meetingPlace ?? "");
