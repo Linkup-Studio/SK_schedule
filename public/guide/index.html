@@ -1,0 +1,1873 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>一色SKクラブ アプリ操作ガイド</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #1a237e;
+      --primary-light: #3949ab;
+      --primary-50: #e8eaf6;
+      --surface: #ffffff;
+      --bg: #f5f5f8;
+      --text: #1a1a2e;
+      --muted: #6b7280;
+      --attend: #16a34a;
+      --absent: #dc2626;
+      --undecided: #f59e0b;
+      --border: #e8e8ee;
+      --slide-max-w: 100%;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Noto Sans JP', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ===== Slide Container ===== */
+    .slide-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 16px 90px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      visibility: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .slide.active {
+      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .slide-inner {
+      width: 100%;
+      max-width: var(--slide-max-w);
+      padding-top: 24px;
+    }
+
+    /* ===== Progress Bar ===== */
+    .progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: var(--border);
+      z-index: 100;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      border-radius: 0 4px 4px 0;
+      transition: width 0.4s ease;
+    }
+
+    /* ===== Slide Number ===== */
+    .slide-number {
+      position: fixed;
+      top: 16px;
+      right: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 20px;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    /* ===== Navigation ===== */
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom, 8px));
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      z-index: 100;
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 10px 20px;
+      border-radius: 12px;
+      border: none;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .nav-btn:active {
+      transform: scale(0.95);
+    }
+
+    .nav-btn.prev {
+      background: var(--primary-50);
+      color: var(--primary);
+    }
+
+    .nav-btn.next {
+      background: var(--primary);
+      color: white;
+      box-shadow: 0 4px 12px rgba(26, 35, 126, 0.3);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    .nav-dots {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .nav-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: all 0.3s ease;
+    }
+
+    .nav-dot.active {
+      width: 20px;
+      border-radius: 3px;
+      background: var(--primary);
+    }
+
+    /* ===== Typography ===== */
+    .slide-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--primary);
+      background: var(--primary-50);
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 10px;
+    }
+
+    .slide-title {
+      font-size: 21px;
+      font-weight: 900;
+      line-height: 1.3;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+
+    .slide-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    /* ===== Phone Mockup ===== */
+    .phone-mockup {
+      position: relative;
+      width: 100%;
+      max-width: 300px;
+      margin: 0 auto 20px;
+      background: var(--surface);
+      border-radius: 28px;
+      border: 3px solid #d1d5db;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+
+    .phone-notch {
+      position: relative;
+      width: 100%;
+      height: 28px;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .phone-notch::after {
+      content: '';
+      width: 80px;
+      height: 5px;
+      background: #d1d5db;
+      border-radius: 10px;
+    }
+
+    .phone-content {
+      padding: 8px 12px 16px;
+      min-height: 320px;
+    }
+
+    /* ===== Mock UI Elements ===== */
+    .mock-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 8px 0 12px;
+    }
+
+    .mock-logo {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #1a237e 0%, #3949ab 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 8px;
+      font-weight: 900;
+    }
+
+    .mock-team-name {
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--primary);
+    }
+
+    .mock-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    .mock-welcome {
+      background: linear-gradient(135deg, #1a237e 0%, #3949ab 50%, #5c6bc0 100%);
+      border-radius: 14px;
+      padding: 12px;
+      color: white;
+      margin-bottom: 10px;
+    }
+
+    .mock-welcome-date {
+      font-size: 9px;
+      opacity: 0.7;
+    }
+
+    .mock-welcome-greeting {
+      font-size: 14px;
+      font-weight: 900;
+      margin: 2px 0;
+    }
+
+    .mock-welcome-sub {
+      font-size: 9px;
+      opacity: 0.7;
+    }
+
+    .mock-game-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mock-date-block {
+      width: 36px;
+      height: 42px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #1a237e 0%, #3949ab 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .mock-date-month {
+      font-size: 7px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .mock-date-day {
+      font-size: 14px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .mock-date-week {
+      font-size: 7px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .mock-game-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .mock-badge {
+      display: inline-block;
+      font-size: 8px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      margin-right: 3px;
+    }
+
+    .mock-badge-official {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+
+    .mock-badge-grade {
+      background: #f0fdf4;
+      color: #16a34a;
+      border: 1px solid #bbf7d0;
+    }
+
+    .mock-game-title {
+      font-size: 11px;
+      font-weight: 900;
+      margin-top: 2px;
+    }
+
+    .mock-game-meta {
+      font-size: 8px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+
+    .mock-attendance-bar {
+      display: flex;
+      height: 4px;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 6px;
+      background: #f3f4f6;
+    }
+
+    .mock-att-attend { background: var(--attend); }
+    .mock-att-absent { background: var(--absent); }
+    .mock-att-undecided { background: var(--undecided); }
+
+    /* ===== Bottom Nav Mock ===== */
+    .mock-bottom-nav {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 6px 0 4px;
+      border-top: 1px solid var(--border);
+      margin: 8px -12px -16px;
+      background: var(--surface);
+    }
+
+    .mock-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+
+    .mock-nav-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+
+    .mock-nav-icon.active {
+      background: var(--primary-50);
+      color: var(--primary);
+    }
+
+    .mock-nav-label {
+      font-size: 7px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .mock-nav-label.active {
+      color: var(--primary);
+      font-weight: 900;
+    }
+
+    /* ===== Step List ===== */
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .step-number {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: var(--primary);
+      color: white;
+      font-size: 14px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-content {
+      flex: 1;
+      padding-top: 4px;
+    }
+
+    .step-content h4 {
+      font-size: 14px;
+      font-weight: 900;
+      margin-bottom: 2px;
+    }
+
+    .step-content p {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* ===== Highlight Card ===== */
+    .highlight-card {
+      background: var(--primary-50);
+      border: 2px solid rgba(26, 35, 126, 0.15);
+      border-radius: 16px;
+      padding: 16px;
+      margin-top: 16px;
+    }
+
+    .highlight-card h4 {
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+
+    .highlight-card p {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ===== Info Card ===== */
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    .info-card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    .info-card-body {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .info-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    /* ===== Status Grid (出欠ボタン) ===== */
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .status-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 14px 8px;
+      border-radius: 12px;
+      border: 2px solid var(--border);
+      background: var(--surface);
+    }
+
+    .status-btn.selected {
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .status-btn .icon {
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .status-btn .label {
+      font-size: 10px;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .status-attend { border-color: var(--attend); background: rgba(22,163,74,0.08); }
+    .status-attend .icon { color: var(--attend); }
+    .status-attend .label { color: var(--attend); }
+
+    .status-absent { border-color: var(--absent); background: rgba(220,38,38,0.08); }
+    .status-absent .icon { color: var(--absent); }
+    .status-absent .label { color: var(--absent); }
+
+    .status-undecided { border-color: var(--undecided); background: rgba(245,158,11,0.08); }
+    .status-undecided .icon { color: var(--undecided); }
+    .status-undecided .label { color: var(--undecided); }
+
+    .mock-submit-btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      background: var(--primary);
+      color: white;
+      font-size: 13px;
+      font-weight: 900;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(26,35,126,0.3);
+    }
+
+    .mock-input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      font-size: 12px;
+      color: var(--text);
+      font-family: 'Noto Sans JP', sans-serif;
+    }
+
+    /* ===== Calendar Mock ===== */
+    .mock-calendar {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .mock-cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .mock-cal-arrow {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .mock-cal-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      border-bottom: 1px solid var(--border);
+      background: #fafafe;
+    }
+
+    .mock-cal-weekday {
+      text-align: center;
+      padding: 4px 0;
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .mock-cal-weekday:first-child { color: #ef4444; }
+    .mock-cal-weekday:last-child { color: #3b82f6; }
+
+    .mock-cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+    }
+
+    .mock-cal-day {
+      text-align: center;
+      padding: 6px 0 4px;
+      font-size: 10px;
+      font-weight: 700;
+      position: relative;
+    }
+
+    .mock-cal-day.today {
+      color: white;
+    }
+
+    .mock-cal-day.today::before {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 18px;
+      height: 18px;
+      background: var(--primary);
+      border-radius: 50%;
+      z-index: 0;
+    }
+
+    .mock-cal-day.today span { position: relative; z-index: 1; }
+
+    .mock-cal-day .dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      margin: 2px auto 0;
+    }
+
+    .mock-cal-day.dim { color: #ccc; }
+
+    /* ===== Tip Box ===== */
+    .tip-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 12px;
+    }
+
+    .tip-box .tip-icon {
+      font-size: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .tip-box .tip-text {
+      font-size: 11px;
+      color: #92400e;
+      font-weight: 700;
+      line-height: 1.6;
+    }
+
+    /* ===== Highlight Pointer ===== */
+    .pointer {
+      position: absolute;
+      z-index: 10;
+    }
+
+    .pointer-circle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 3px solid var(--absent);
+      animation: pulse-pointer 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-pointer {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.15); opacity: 1; }
+    }
+
+    /* ===== Entrance Animations ===== */
+    .slide .animate-up {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .slide.active .animate-up {
+      animation: slideUp 0.5s ease forwards;
+    }
+
+    .slide.active .animate-up.delay-1 { animation-delay: 0.1s; }
+    .slide.active .animate-up.delay-2 { animation-delay: 0.2s; }
+    .slide.active .animate-up.delay-3 { animation-delay: 0.3s; }
+    .slide.active .animate-up.delay-4 { animation-delay: 0.4s; }
+    .slide.active .animate-up.delay-5 { animation-delay: 0.5s; }
+
+    @keyframes slideUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ===== Swipe hint ===== */
+    .swipe-hint {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+      margin-top: 8px;
+      animation: swipeAnim 2s ease-in-out infinite;
+    }
+
+    @keyframes swipeAnim {
+      0%, 100% { transform: translateX(0); }
+      50% { transform: translateX(8px); }
+    }
+
+    /* ===== Cover Slide ===== */
+    .cover-hero {
+      background: linear-gradient(135deg, #1a237e 0%, #3949ab 50%, #5c6bc0 100%);
+      border-radius: 20px;
+      padding: 28px 20px;
+      color: white;
+      text-align: center;
+      margin-bottom: 20px;
+      box-shadow: 0 8px 30px rgba(26,35,126,0.3);
+    }
+
+    .cover-logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    .cover-title {
+      font-size: 20px;
+      font-weight: 900;
+      margin-bottom: 4px;
+    }
+
+    .cover-team {
+      font-size: 14px;
+      font-weight: 900;
+      opacity: 0.8;
+      margin-bottom: 12px;
+    }
+
+    .cover-divider {
+      width: 40px;
+      height: 2px;
+      background: rgba(255,255,255,0.3);
+      margin: 0 auto 16px;
+      border-radius: 2px;
+    }
+
+    .cover-desc {
+      font-size: 12px;
+      opacity: 0.8;
+      line-height: 1.6;
+    }
+
+    /* ===== Summary Grid ===== */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+
+    .summary-card .sc-icon {
+      font-size: 24px;
+      margin-bottom: 6px;
+    }
+
+    .summary-card .sc-title {
+      font-size: 12px;
+      font-weight: 900;
+      margin-bottom: 2px;
+    }
+
+    .summary-card .sc-desc {
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    /* ===== Mock Info Row ===== */
+    .mock-info-rows {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .mock-info-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .mock-info-row:last-child { border-bottom: none; }
+
+    .mock-info-row .row-icon {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .mock-info-row .row-label {
+      font-size: 8px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .mock-info-row .row-value {
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    /* ===== Attendance Summary Mock ===== */
+    .mock-att-summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .mock-att-box {
+      text-align: center;
+      padding: 6px 4px;
+      border-radius: 8px;
+      border: 1px solid;
+    }
+
+    .mock-att-box .att-label {
+      font-size: 7px;
+      font-weight: 700;
+      display: block;
+      margin-bottom: 1px;
+    }
+
+    .mock-att-box .att-count {
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .att-attend {
+      background: rgba(22,163,74,0.08);
+      border-color: rgba(22,163,74,0.2);
+      color: var(--attend);
+    }
+
+    .att-absent {
+      background: rgba(220,38,38,0.08);
+      border-color: rgba(220,38,38,0.2);
+      color: var(--absent);
+    }
+
+    .att-undecided {
+      background: rgba(245,158,11,0.08);
+      border-color: rgba(245,158,11,0.2);
+      color: var(--undecided);
+    }
+
+    .att-noanswer {
+      background: #f9fafb;
+      border-color: #e5e7eb;
+      color: var(--muted);
+    }
+
+    /* ===== Final Slide ===== */
+    .final-hero {
+      background: linear-gradient(135deg, #1a237e 0%, #3949ab 50%, #5c6bc0 100%);
+      border-radius: 24px;
+      padding: 32px 20px;
+      color: white;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .final-checkmark {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 28px;
+    }
+
+    .qr-section {
+      text-align: center;
+      margin-top: 16px;
+    }
+
+    .qr-section p {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="slide-number" id="slideNumber">1 / 7</div>
+
+  <div class="slide-container" id="slideContainer">
+
+    <!-- ===== SLIDE 1: カバー ===== -->
+    <div class="slide active" data-slide="0">
+      <div class="slide-inner">
+        <div class="cover-hero animate-up">
+          <div class="cover-logo">⚾</div>
+          <div class="cover-team">一色SKクラブ</div>
+          <div class="cover-divider"></div>
+          <div class="cover-title">アプリ操作ガイド</div>
+          <div class="cover-desc">保護者のみなさまへ<br>スケジュール確認＆出欠回答の方法</div>
+        </div>
+
+        <div class="summary-grid animate-up delay-2">
+          <div class="summary-card">
+            <div class="sc-icon">📅</div>
+            <div class="sc-title">スケジュール確認</div>
+            <div class="sc-desc">試合・練習の予定を<br>すぐにチェック</div>
+          </div>
+          <div class="summary-card">
+            <div class="sc-icon">✋</div>
+            <div class="sc-title">出欠の回答</div>
+            <div class="sc-desc">○×△をタップして<br>かんたん送信</div>
+          </div>
+          <div class="summary-card">
+            <div class="sc-icon">📢</div>
+            <div class="sc-title">お知らせ確認</div>
+            <div class="sc-desc">チームからの<br>連絡を確認</div>
+          </div>
+          <div class="summary-card">
+            <div class="sc-icon">📋</div>
+            <div class="sc-title">持ち物・集合</div>
+            <div class="sc-desc">忘れ物なしで<br>当日を迎える</div>
+          </div>
+        </div>
+
+        <div class="swipe-hint animate-up delay-4">
+          「次へ」で進む →
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SLIDE 2: ホーム画面の見方 ===== -->
+    <div class="slide" data-slide="1">
+      <div class="slide-inner">
+        <div class="slide-badge animate-up">📱 STEP 1</div>
+        <h2 class="slide-title animate-up delay-1">ホーム画面を見る</h2>
+        <p class="slide-subtitle animate-up delay-2">アプリを開くと最初に表示される画面です。<br>今後の試合とお知らせがまとめて見れます。</p>
+
+        <div class="phone-mockup animate-up delay-3">
+          <div class="phone-notch"></div>
+          <div class="phone-content">
+            <div class="mock-header">
+              <div class="mock-logo">SK</div>
+              <span class="mock-team-name">一色SKクラブ</span>
+            </div>
+
+            <div class="mock-welcome">
+              <div class="mock-welcome-date">4月20日（日）</div>
+              <div class="mock-welcome-greeting">おはようございます 👋</div>
+              <div class="mock-welcome-sub">一色SKクラブの予定をチェック</div>
+            </div>
+
+            <div style="font-size:10px; font-weight:900; margin-bottom:6px; display:flex; align-items:center; gap:4px;">
+              📅 今後の試合
+            </div>
+
+            <!-- 試合カード1 -->
+            <div class="mock-card">
+              <div class="mock-game-row">
+                <div class="mock-date-block">
+                  <span class="mock-date-month">4月</span>
+                  <span class="mock-date-day">19</span>
+                  <span class="mock-date-week">土</span>
+                </div>
+                <div class="mock-game-info">
+                  <div>
+                    <span class="mock-badge mock-badge-official">公式戦</span>
+                    <span class="mock-badge mock-badge-grade">中3</span>
+                  </div>
+                  <div class="mock-game-title">東海ジュニアリーグ戦</div>
+                  <div class="mock-game-meta">📍 大高緑地 B面 ・ 🕐 09:20</div>
+                </div>
+              </div>
+              <div class="mock-attendance-bar">
+                <div class="mock-att-attend" style="width:50%"></div>
+                <div class="mock-att-absent" style="width:10%"></div>
+              </div>
+            </div>
+
+            <!-- 試合カード2 -->
+            <div class="mock-card">
+              <div class="mock-game-row">
+                <div class="mock-date-block" style="background:linear-gradient(135deg, #1a237e 0%, #3949ab 100%);">
+                  <span class="mock-date-month">4月</span>
+                  <span class="mock-date-day">19</span>
+                  <span class="mock-date-week">土</span>
+                </div>
+                <div class="mock-game-info">
+                  <div>
+                    <span class="mock-badge mock-badge-official">公式戦</span>
+                    <span class="mock-badge" style="background:#f0fdf4; color:#059669; border:1px solid #bbf7d0;">中2</span>
+                  </div>
+                  <div class="mock-game-title">東海ミドルチャレンジ</div>
+                  <div class="mock-game-meta">📍 一色中学校 ・ 🕐 10:30</div>
+                </div>
+              </div>
+              <div class="mock-attendance-bar">
+                <div class="mock-att-attend" style="width:30%"></div>
+              </div>
+            </div>
+
+            <!-- 最新のお知らせセクション -->
+            <div style="font-size:10px; font-weight:900; margin: 10px 0 6px; display:flex; align-items:center; justify-content:space-between;">
+              <span style="display:flex; align-items:center; gap:4px;">📢 最新のお知らせ</span>
+              <span style="font-size:8px; color:var(--primary); font-weight:700;">すべて見る ›</span>
+            </div>
+
+            <!-- お知らせ1 -->
+            <div style="display:flex; align-items:center; gap:6px; background:white; border:1px solid var(--border); border-radius:10px; padding:6px 8px; margin-bottom:4px;">
+              <div style="width:5px; height:5px; border-radius:50%; background:#dc2626; flex-shrink:0;"></div>
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; gap:2px; align-items:center;">
+                  <span style="font-size:7px; font-weight:700; color:#dc2626; background:rgba(220,38,38,0.08); padding:0 3px; border-radius:2px;">📌 固定</span>
+                  <span class="mock-badge mock-badge-grade" style="font-size:7px; padding:0 3px;">中3</span>
+                </div>
+                <div style="font-size:9px; font-weight:900; margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">公式戦のお知らせ: リーグ戦</div>
+                <div style="font-size:7px; color:var(--muted);">4/13 · 管理者</div>
+              </div>
+            </div>
+
+            <!-- お知らせ2 -->
+            <div style="display:flex; align-items:center; gap:6px; background:white; border:1px solid var(--border); border-radius:10px; padding:6px 8px; margin-bottom:4px;">
+              <div style="width:5px; height:5px; border-radius:50%; background:var(--primary); flex-shrink:0;"></div>
+              <div style="flex:1; min-width:0;">
+                <div><span class="mock-badge" style="font-size:7px; padding:0 3px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;">中2</span></div>
+                <div style="font-size:9px; font-weight:900; margin-top:1px;">GW練習スケジュール</div>
+                <div style="font-size:7px; color:var(--muted);">4/12 · コーチ</div>
+              </div>
+            </div>
+
+            <!-- お知らせ3 -->
+            <div style="display:flex; align-items:center; gap:6px; background:white; border:1px solid var(--border); border-radius:10px; padding:6px 8px; margin-bottom:4px;">
+              <div style="width:5px; height:5px; border-radius:50%; background:var(--primary); flex-shrink:0;"></div>
+              <div style="flex:1; min-width:0;">
+                <div><span class="mock-badge" style="font-size:7px; padding:0 3px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;">中1</span></div>
+                <div style="font-size:9px; font-weight:900; margin-top:1px;">新入部員の持ち物リスト</div>
+                <div style="font-size:7px; color:var(--muted);">4/10 · 監督</div>
+              </div>
+            </div>
+
+            <div class="mock-bottom-nav">
+              <div class="mock-nav-item">
+                <div class="mock-nav-icon active">🏠</div>
+                <span class="mock-nav-label active">ホーム</span>
+              </div>
+              <div class="mock-nav-item">
+                <div class="mock-nav-icon">📅</div>
+                <span class="mock-nav-label">予定</span>
+              </div>
+              <div class="mock-nav-item">
+                <div class="mock-nav-icon">📢</div>
+                <span class="mock-nav-label">連絡</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-list animate-up delay-4">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>挨拶バナー</h4>
+              <p>時間帯に合わせた挨拶と日付が表示されます</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>📅 今後の試合（最大2件）</h4>
+              <p>直近の試合が最大2件表示されます。タップで詳細＆出欠回答へ</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>出欠バー</h4>
+              <p>🟢参加 ・ 🔴欠席 ・ 🟡未定 の割合が一目でわかります</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h4>📢 最新のお知らせ（最大3件）</h4>
+              <p>チームからの連絡が最大3件表示。「すべて見る」で全件確認できます</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SLIDE 3: カレンダー ===== -->
+    <div class="slide" data-slide="2">
+      <div class="slide-inner">
+        <div class="slide-badge animate-up">📅 STEP 2</div>
+        <h2 class="slide-title animate-up delay-1">スケジュールを確認</h2>
+        <p class="slide-subtitle animate-up delay-2">下のメニューから「予定」をタップ。<br>カレンダーでもリストでも見れます。</p>
+
+        <div class="phone-mockup animate-up delay-3">
+          <div class="phone-notch"></div>
+          <div class="phone-content">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-size:13px; font-weight:900; display:flex; align-items:center; gap:4px;">📅 予定</div>
+              <div style="display:flex; background:#e8eaf6; border-radius:6px; padding:2px;">
+                <div style="padding:3px 6px; border-radius:4px; background:var(--primary); color:white; font-size:8px; font-weight:700;">📅</div>
+                <div style="padding:3px 6px; border-radius:4px; font-size:8px; font-weight:700; color:var(--muted);">≡</div>
+              </div>
+            </div>
+
+            <!-- Grade Filter -->
+            <div style="display:flex; gap:4px; margin-bottom:8px;">
+              <span style="font-size:9px; font-weight:700; padding:3px 8px; border-radius:6px; background:var(--primary); color:white;">すべて</span>
+              <span style="font-size:9px; font-weight:700; padding:3px 8px; border-radius:6px; background:white; border:1px solid var(--border); color:var(--muted);">中3</span>
+              <span style="font-size:9px; font-weight:700; padding:3px 8px; border-radius:6px; background:white; border:1px solid var(--border); color:var(--muted);">中2</span>
+              <span style="font-size:9px; font-weight:700; padding:3px 8px; border-radius:6px; background:white; border:1px solid var(--border); color:var(--muted);">中1</span>
+            </div>
+
+            <div class="mock-calendar">
+              <div class="mock-cal-header">
+                <span class="mock-cal-arrow">‹</span>
+                <span>2026年 4月</span>
+                <span class="mock-cal-arrow">›</span>
+              </div>
+              <div class="mock-cal-weekdays">
+                <div class="mock-cal-weekday">日</div>
+                <div class="mock-cal-weekday">月</div>
+                <div class="mock-cal-weekday">火</div>
+                <div class="mock-cal-weekday">水</div>
+                <div class="mock-cal-weekday">木</div>
+                <div class="mock-cal-weekday">金</div>
+                <div class="mock-cal-weekday">土</div>
+              </div>
+              <div class="mock-cal-grid">
+                <div class="mock-cal-day dim">29</div>
+                <div class="mock-cal-day dim">30</div>
+                <div class="mock-cal-day dim">31</div>
+                <div class="mock-cal-day">1</div>
+                <div class="mock-cal-day">2</div>
+                <div class="mock-cal-day">3</div>
+                <div class="mock-cal-day">4</div>
+                <div class="mock-cal-day">5<div class="dot" style="background:var(--attend)"></div></div>
+                <div class="mock-cal-day">6</div>
+                <div class="mock-cal-day">7</div>
+                <div class="mock-cal-day">8</div>
+                <div class="mock-cal-day">9</div>
+                <div class="mock-cal-day">10</div>
+                <div class="mock-cal-day">11</div>
+                <div class="mock-cal-day">12<div class="dot" style="background:var(--absent)"></div></div>
+                <div class="mock-cal-day">13</div>
+                <div class="mock-cal-day">14</div>
+                <div class="mock-cal-day today"><span>15</span></div>
+                <div class="mock-cal-day">16</div>
+                <div class="mock-cal-day">17</div>
+                <div class="mock-cal-day">18</div>
+                <div class="mock-cal-day">19<div class="dot" style="background:#dc2626"></div></div>
+                <div class="mock-cal-day">20</div>
+                <div class="mock-cal-day">21</div>
+                <div class="mock-cal-day">22</div>
+                <div class="mock-cal-day">23</div>
+                <div class="mock-cal-day">24</div>
+                <div class="mock-cal-day">25</div>
+                <div class="mock-cal-day">26<div class="dot" style="background:#dc2626"></div></div>
+                <div class="mock-cal-day">27</div>
+                <div class="mock-cal-day">28</div>
+                <div class="mock-cal-day">29</div>
+                <div class="mock-cal-day">30</div>
+                <div class="mock-cal-day dim">1</div>
+                <div class="mock-cal-day dim">2</div>
+              </div>
+            </div>
+
+            <div style="display:flex; justify-content:center; gap:8px; font-size:8px; color:var(--muted);">
+              <span style="display:flex; align-items:center; gap:3px;"><span style="width:6px;height:6px;border-radius:50%;background:#dc2626;display:inline-block;"></span>公式戦</span>
+              <span style="display:flex; align-items:center; gap:3px;"><span style="width:6px;height:6px;border-radius:50%;background:#2563eb;display:inline-block;"></span>練習試合</span>
+              <span style="display:flex; align-items:center; gap:3px;"><span style="width:6px;height:6px;border-radius:50%;background:#6b7280;display:inline-block;"></span>その他</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- リスト表示の説明 -->
+        <div style="text-align:center; margin-bottom:12px;" class="animate-up delay-4">
+          <div style="display:inline-flex; align-items:center; gap:6px; background:var(--primary-50); border:2px solid rgba(26,35,126,0.15); border-radius:12px; padding:8px 16px;">
+            <span style="font-size:16px;">↕️</span>
+            <span style="font-size:12px; font-weight:900; color:var(--primary);">右上ボタンでリスト表示にも切替OK！</span>
+          </div>
+        </div>
+
+        <div class="phone-mockup animate-up delay-5" style="max-width:280px;">
+          <div class="phone-notch"></div>
+          <div class="phone-content" style="min-height: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-size:13px; font-weight:900; display:flex; align-items:center; gap:4px;">📅 予定</div>
+              <div style="display:flex; background:#e8eaf6; border-radius:6px; padding:2px;">
+                <div style="padding:3px 6px; border-radius:4px; font-size:8px; font-weight:700; color:var(--muted);">📅</div>
+                <div style="padding:3px 6px; border-radius:4px; background:var(--primary); color:white; font-size:8px; font-weight:700;">≡</div>
+              </div>
+            </div>
+
+            <!-- リスト表示のゲームカード群 -->
+            <div class="mock-card">
+              <div class="mock-game-row">
+                <div class="mock-date-block">
+                  <span class="mock-date-month">4月</span>
+                  <span class="mock-date-day">19</span>
+                  <span class="mock-date-week">土</span>
+                </div>
+                <div class="mock-game-info">
+                  <div>
+                    <span class="mock-badge mock-badge-official">公式戦</span>
+                    <span class="mock-badge mock-badge-grade">中3</span>
+                  </div>
+                  <div class="mock-game-title">春季大会 1回戦</div>
+                  <div class="mock-game-meta">📍 西尾市総合G ・ 🕐 09:00</div>
+                </div>
+              </div>
+              <div class="mock-attendance-bar">
+                <div class="mock-att-attend" style="width:60%"></div>
+                <div class="mock-att-absent" style="width:15%"></div>
+                <div class="mock-att-undecided" style="width:10%"></div>
+              </div>
+            </div>
+
+            <div class="mock-card">
+              <div class="mock-game-row">
+                <div class="mock-date-block" style="background:linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);">
+                  <span class="mock-date-month">4月</span>
+                  <span class="mock-date-day">26</span>
+                  <span class="mock-date-week">土</span>
+                </div>
+                <div class="mock-game-info">
+                  <div>
+                    <span class="mock-badge" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;">練習試合</span>
+                    <span class="mock-badge mock-badge-grade">中2</span>
+                  </div>
+                  <div class="mock-game-title">vs 碧南クラブ</div>
+                  <div class="mock-game-meta">📍 碧南臨海G ・ 🕐 13:00</div>
+                </div>
+              </div>
+              <div class="mock-attendance-bar">
+                <div class="mock-att-attend" style="width:40%"></div>
+                <div class="mock-att-absent" style="width:10%"></div>
+                <div class="mock-att-undecided" style="width:20%"></div>
+              </div>
+            </div>
+
+            <div class="mock-card">
+              <div class="mock-game-row">
+                <div class="mock-date-block">
+                  <span class="mock-date-month">5月</span>
+                  <span class="mock-date-day">3</span>
+                  <span class="mock-date-week">日</span>
+                </div>
+                <div class="mock-game-info">
+                  <div>
+                    <span class="mock-badge mock-badge-official">公式戦</span>
+                    <span class="mock-badge mock-badge-grade">中3</span>
+                  </div>
+                  <div class="mock-game-title">春季大会 2回戦</div>
+                  <div class="mock-game-meta">📍 未定 ・ 🕐 未定</div>
+                </div>
+              </div>
+              <div class="mock-attendance-bar" style="background:#f3f4f6;"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-list animate-up delay-4">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>📅 カレンダー表示</h4>
+              <p>月全体を見渡して、試合のある日を色ドットで確認できます</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>≡ リスト表示</h4>
+              <p>今後の試合を一覧で確認。出欠状況バーも一緒に見れて便利です</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>学年フィルター</h4>
+              <p>「中3」「中2」「中1」で絞り込みが可能です</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="tip-box animate-up delay-5">
+          <span class="tip-icon">💡</span>
+          <span class="tip-text">リスト表示なら、今後の試合が時系列で並ぶので予定が把握しやすいです！</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SLIDE 4: 試合詳細の見方 ===== -->
+    <div class="slide" data-slide="3">
+      <div class="slide-inner">
+        <div class="slide-badge animate-up">📋 STEP 3</div>
+        <h2 class="slide-title animate-up delay-1">試合の詳細を確認</h2>
+        <p class="slide-subtitle animate-up delay-2">試合カードをタップすると、<br>日時・場所・集合場所など確認できます。</p>
+
+        <div class="phone-mockup animate-up delay-3">
+          <div class="phone-notch"></div>
+          <div class="phone-content">
+            <div style="font-size:10px; color:var(--muted); margin-bottom:6px; display:flex; align-items:center; gap:3px;">
+              ← カレンダーに戻る
+            </div>
+
+            <!-- Hero card -->
+            <div style="background:linear-gradient(135deg,#1a237e,#3949ab,#5c6bc0); border-radius:14px; padding:10px; color:white; margin-bottom:8px;">
+              <div style="display:flex; gap:3px; margin-bottom:4px;">
+                <span class="mock-badge" style="background:rgba(255,255,255,0.2); color:white; border:none;">公式戦</span>
+                <span class="mock-badge" style="background:rgba(255,255,255,0.2); color:white; border:none;">中3</span>
+              </div>
+              <div style="font-size:14px; font-weight:900; margin-bottom:2px;">春季大会 1回戦</div>
+              <div style="font-size:10px; opacity:0.8;">vs 碧南クラブ</div>
+              <div style="margin-top:6px;">
+                <span style="font-size:9px; background:rgba(255,255,255,0.2); padding:3px 8px; border-radius:10px; font-weight:700;">📅 10日後</span>
+              </div>
+            </div>
+
+            <div class="mock-info-rows">
+              <div class="mock-info-row">
+                <div class="row-icon">📅</div>
+                <div>
+                  <div class="row-label">日時</div>
+                  <div class="row-value">4月26日（土）</div>
+                  <div style="font-size:9px; color:var(--muted);">09:00 〜 17:00</div>
+                </div>
+              </div>
+              <div class="mock-info-row">
+                <div class="row-icon">⏰</div>
+                <div>
+                  <div class="row-label">集合</div>
+                  <div class="row-value">08:00</div>
+                  <div style="font-size:9px; color:var(--muted);">西尾市総合G 正面入口</div>
+                </div>
+              </div>
+              <div class="mock-info-row">
+                <div class="row-icon">📍</div>
+                <div>
+                  <div class="row-label">会場</div>
+                  <div class="row-value">西尾市総合グラウンド</div>
+                  <div style="font-size:9px; color:#1a237e; font-weight:700;">🔗 Google Maps</div>
+                </div>
+              </div>
+              <div class="mock-info-row">
+                <div class="row-icon">🎒</div>
+                <div>
+                  <div class="row-label">持ち物</div>
+                  <div class="row-value" style="font-size:10px;">ユニフォーム、弁当、水筒</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:4px;">
+              <div style="flex:1; padding:8px; border:1px solid var(--border); border-radius:10px; text-align:center; font-size:10px; font-weight:700; color:var(--muted); background:white;">📋 情報をコピー</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="highlight-card animate-up delay-4">
+          <h4>💡 「情報をコピー」が便利！</h4>
+          <p>「情報をコピー」ボタンをタップすると、日時・場所・持ち物の情報がまとめてコピーされます。LINEなどにそのまま貼り付けてご家族にも共有できます。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SLIDE 5: 出欠回答の方法 ===== -->
+    <div class="slide" data-slide="4">
+      <div class="slide-inner">
+        <div class="slide-badge animate-up">✋ STEP 4</div>
+        <h2 class="slide-title animate-up delay-1">出欠を回答する</h2>
+        <p class="slide-subtitle animate-up delay-2">試合詳細ページの下半分に<br>出欠回答フォームがあります。</p>
+
+        <div class="phone-mockup animate-up delay-3">
+          <div class="phone-notch"></div>
+          <div class="phone-content" style="min-height: 380px;">
+            <div style="border: 2px solid rgba(26,35,126,0.15); border-radius:14px; padding:10px; position:relative;">
+              <div style="position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,#1a237e,#3949ab); border-radius:14px 14px 0 0;"></div>
+
+              <div style="text-align:center; margin-bottom:8px; padding-top:4px;">
+                <div style="font-size:12px; font-weight:900; margin-bottom:6px;">出欠を送信</div>
+                <div style="display:inline-flex; align-items:center; gap:4px; background:rgba(220,38,38,0.08); border:2px solid rgba(220,38,38,0.2); border-radius:10px; padding:4px 10px;">
+                  <span style="font-size:10px; font-weight:900; color:#dc2626;">⏰ 締切: 4月23日（水）まで</span>
+                </div>
+              </div>
+
+              <div style="margin-bottom:8px;">
+                <label style="font-size:8px; font-weight:700; color:var(--muted); display:block; margin-bottom:3px;">選手のお名前（必須）</label>
+                <div class="mock-input" style="font-weight:700; color:#aaa;">例: 佐藤 太郎</div>
+              </div>
+
+              <div class="status-grid" style="margin:10px 0;">
+                <div class="status-btn status-attend selected">
+                  <span class="icon">○</span>
+                  <span class="label">参加</span>
+                </div>
+                <div class="status-btn status-absent">
+                  <span class="icon">×</span>
+                  <span class="label">欠席</span>
+                </div>
+                <div class="status-btn status-undecided">
+                  <span class="icon">△</span>
+                  <span class="label">未定</span>
+                </div>
+              </div>
+
+              <div style="background:rgba(37,99,235,0.08); border:1px solid rgba(37,99,235,0.15); border-radius:10px; padding:6px 8px; text-align:center; margin-bottom:8px;">
+                <span style="font-size:9px; font-weight:700; color:#2563eb;">🔄 同じお名前で再送信すると、回答を修正できます</span>
+              </div>
+
+              <div class="mock-submit-btn">✅ この出欠を送信する</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-list animate-up delay-4">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>選手のお名前を入力</h4>
+              <p>お子さまのフルネームを入力してください</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>○ × △ を選択</h4>
+              <p><strong style="color:var(--attend);">○参加</strong> ・ <strong style="color:var(--absent);">×欠席</strong> ・ <strong style="color:var(--undecided);">△未定</strong> をタップ</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>「この出欠を送信する」をタップ</h4>
+              <p>送信完了！ ✅ のメッセージが出ればOKです</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="tip-box animate-up delay-5">
+          <span class="tip-icon">💡</span>
+          <span class="tip-text">間違えても大丈夫！同じお名前でもう一度送信すれば、回答が上書き修正されます。</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SLIDE 6: 欠席・未定の場合 ===== -->
+    <div class="slide" data-slide="5">
+      <div class="slide-inner">
+        <div class="slide-badge animate-up">📝 STEP 5</div>
+        <h2 class="slide-title animate-up delay-1">欠席・未定の場合</h2>
+        <p class="slide-subtitle animate-up delay-2">×欠席 や △未定 を選ぶと、<br>理由の入力欄が表示されます。</p>
+
+        <div class="phone-mockup animate-up delay-3">
+          <div class="phone-notch"></div>
+          <div class="phone-content">
+            <div style="border:2px solid rgba(26,35,126,0.15); border-radius:14px; padding:10px;">
+              <div style="text-align:center; font-size:12px; font-weight:900; margin-bottom:10px;">出欠を送信</div>
+
+              <div style="margin-bottom:8px;">
+                <label style="font-size:8px; font-weight:700; color:var(--muted); display:block; margin-bottom:3px;">選手のお名前（必須）</label>
+                <div class="mock-input" style="font-weight:900; color:var(--text);">佐藤 太郎</div>
+              </div>
+
+              <div class="status-grid" style="margin:8px 0;">
+                <div class="status-btn">
+                  <span class="icon" style="color:var(--attend);">○</span>
+                  <span class="label" style="color:var(--attend);">参加</span>
+                </div>
+                <div class="status-btn status-absent selected">
+                  <span class="icon">×</span>
+                  <span class="label">欠席</span>
+                </div>
+                <div class="status-btn">
+                  <span class="icon" style="color:var(--undecided);">△</span>
+                  <span class="label" style="color:var(--undecided);">未定</span>
+                </div>
+              </div>
+
+              <!-- 理由入力欄 -->
+              <div style="background:rgba(220,38,38,0.05); border:1px solid rgba(220,38,38,0.15); border-radius:10px; padding:8px; margin-bottom:10px;">
+                <label style="font-size:8px; font-weight:700; color:var(--absent); display:block; margin-bottom:3px;">欠席理由（任意）</label>
+                <div class="mock-input" style="border-color:rgba(220,38,38,0.3); font-weight:700; color:#aaa; font-size:11px;">例: 塾のため</div>
+              </div>
+
+              <div class="mock-submit-btn">✅ この出欠を送信する</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card animate-up delay-4">
+          <div class="info-card-title">
+            <div class="info-icon" style="background:rgba(220,38,38,0.1); color:var(--absent);">×</div>
+            欠席の場合
+          </div>
+          <div class="info-card-body">
+            「欠席理由」の入力欄が表示されます。<br>
+            <strong>入力は任意</strong>なので、空欄のままでも送信できます。
+          </div>
+        </div>
+
+        <div class="info-card animate-up delay-5">
+          <div class="info-card-title">
+            <div class="info-icon" style="background:rgba(245,158,11,0.1); color:var(--undecided);">△</div>
+            未定の場合
+          </div>
+          <div class="info-card-body">
+            「未定の理由」の入力欄が表示されます。<br>
+            決まり次第、同じ名前で <strong style="color:var(--attend);">○参加</strong> や <strong style="color:var(--absent);">×欠席</strong> に変更できます。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SLIDE 7: お知らせ確認 ===== -->
+    <div class="slide" data-slide="6">
+      <div class="slide-inner">
+        <div class="slide-badge animate-up">📢 STEP 6</div>
+        <h2 class="slide-title animate-up delay-1">お知らせを確認</h2>
+        <p class="slide-subtitle animate-up delay-2">下のメニューから「連絡」をタップ。<br>チームからの大切なお知らせが届きます。</p>
+
+        <div class="phone-mockup animate-up delay-3">
+          <div class="phone-notch"></div>
+          <div class="phone-content">
+            <div style="font-size:13px; font-weight:900; display:flex; align-items:center; gap:4px; margin-bottom:8px;">📢 お知らせ</div>
+
+            <div class="mock-card" style="display:flex; align-items:flex-start; gap:8px;">
+              <div style="width:28px; height:28px; border-radius:8px; background:rgba(220,38,38,0.1); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:12px;">📌</div>
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; gap:3px; margin-bottom:2px; flex-wrap:wrap;">
+                  <span style="font-size:8px; font-weight:700; color:#dc2626; background:rgba(220,38,38,0.08); padding:1px 5px; border-radius:4px; border:1px solid rgba(220,38,38,0.15);">📌 固定</span>
+                  <span style="font-size:9px; font-weight:900; color:#334155; background:linear-gradient(90deg,#eff6ff,#f0fdf4,#faf5ff); padding:2px 6px; border-radius:6px; border:2px solid #cbd5e1;">📨 宛先: 全学年</span>
+                </div>
+                <div style="font-size:11px; font-weight:900;">GW期間中の練習予定について</div>
+                <div style="font-size:8px; color:var(--muted); margin-top:2px;">4月15日（火） · 監督</div>
+              </div>
+            </div>
+
+            <div class="mock-card" style="display:flex; align-items:flex-start; gap:8px;">
+              <div style="width:28px; height:28px; border-radius:8px; background:var(--primary-50); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:12px;">📢</div>
+              <div style="flex:1; min-width:0;">
+                <div style="margin-bottom:2px;">
+                  <span style="font-size:9px; font-weight:900; color:#7c3aed; background:#faf5ff; padding:2px 6px; border-radius:6px; border:2px solid #ddd6fe;">📨 宛先: 中3</span>
+                </div>
+                <div style="font-size:11px; font-weight:900;">春季大会のトーナメント表</div>
+                <div style="font-size:8px; color:var(--muted); margin-top:2px;">4月13日（日） · コーチ</div>
+              </div>
+            </div>
+
+            <div class="mock-card" style="display:flex; align-items:flex-start; gap:8px;">
+              <div style="width:28px; height:28px; border-radius:8px; background:var(--primary-50); display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:12px;">📢</div>
+              <div style="flex:1; min-width:0;">
+                <div style="margin-bottom:2px;">
+                  <span style="font-size:9px; font-weight:900; color:#1d4ed8; background:#eff6ff; padding:2px 6px; border-radius:6px; border:2px solid #bfdbfe;">📨 宛先: 中1</span>
+                </div>
+                <div style="font-size:11px; font-weight:900;">新入部員の持ち物リスト</div>
+                <div style="font-size:8px; color:var(--muted); margin-top:2px;">4月10日（木） · 監督</div>
+              </div>
+            </div>
+
+            <div class="mock-bottom-nav">
+              <div class="mock-nav-item">
+                <div class="mock-nav-icon">🏠</div>
+                <span class="mock-nav-label">ホーム</span>
+              </div>
+              <div class="mock-nav-item">
+                <div class="mock-nav-icon">📅</div>
+                <span class="mock-nav-label">予定</span>
+              </div>
+              <div class="mock-nav-item">
+                <div class="mock-nav-icon active">📢</div>
+                <span class="mock-nav-label active">連絡</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="step-list animate-up delay-4">
+          <div class="step-item">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>📌 固定のお知らせ</h4>
+              <p>重要な連絡は上部に固定表示されます</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>📨 宛先の色分け</h4>
+              <p><strong style="color:#7c3aed;">紫 = 中3</strong>・<strong style="color:#059669;">緑 = 中2</strong>・<strong style="color:#1d4ed8;">青 = 中1</strong> で学年がわかります</p>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>タップで詳細へ</h4>
+              <p>お知らせをタップすると本文全体を読めます</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SLIDE 8: まとめ ===== -->
+    <div class="slide" data-slide="7">
+      <div class="slide-inner">
+        <div class="final-hero animate-up">
+          <div class="final-checkmark">✅</div>
+          <h2 style="font-size:20px; font-weight:900; margin-bottom:4px;">操作ガイドは以上です！</h2>
+          <p style="font-size:13px; opacity:0.8; line-height:1.6;">お子さまの活動に必要な情報が<br>このアプリですべて確認できます</p>
+        </div>
+
+        <h3 style="font-size:15px; font-weight:900; margin-bottom:12px; text-align:center;" class="animate-up delay-1">📝 かんたんまとめ</h3>
+
+        <div class="info-card animate-up delay-2">
+          <div class="info-card-title">
+            <div class="info-icon" style="background:var(--primary-50); color:var(--primary);">📅</div>
+            スケジュール確認
+          </div>
+          <div class="info-card-body">
+            <strong>ホーム画面</strong>または<strong>「予定」タブ</strong>で試合の予定をチェック。<br>
+            カレンダー表示・リスト表示の切替も可能です。
+          </div>
+        </div>
+
+        <div class="info-card animate-up delay-3">
+          <div class="info-card-title">
+            <div class="info-icon" style="background:rgba(22,163,74,0.1); color:var(--attend);">✋</div>
+            出欠の回答
+          </div>
+          <div class="info-card-body">
+            試合カードをタップ → <strong>お名前</strong>を入力 → <strong>○×△</strong>を選択 → <strong>送信</strong>！<br>
+            同じ名前で再送信すれば回答の修正もOK。
+          </div>
+        </div>
+
+        <div class="info-card animate-up delay-4">
+          <div class="info-card-title">
+            <div class="info-icon" style="background:rgba(245,158,11,0.1); color:var(--undecided);">📢</div>
+            お知らせ
+          </div>
+          <div class="info-card-body">
+            <strong>「連絡」タブ</strong>でチームからのお知らせを確認。<br>
+            学年ごとの色分けで、自分の学年の連絡がすぐわかります。
+          </div>
+        </div>
+
+        <div class="tip-box animate-up delay-5">
+          <span class="tip-icon">❓</span>
+          <span class="tip-text">わからないことがあれば、チーム代表者（監督・コーチ）にお気軽にご相談ください。</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav-bar">
+    <button class="nav-btn prev" id="btnPrev" disabled>← 戻る</button>
+    <div class="nav-dots" id="navDots"></div>
+    <button class="nav-btn next" id="btnNext">次へ →</button>
+  </div>
+
+  <script>
+    const TOTAL_SLIDES = 8;
+    let current = 0;
+    let isAnimating = false;
+
+    const slides = document.querySelectorAll('.slide');
+    const progressFill = document.getElementById('progressFill');
+    const slideNumber = document.getElementById('slideNumber');
+    const btnPrev = document.getElementById('btnPrev');
+    const btnNext = document.getElementById('btnNext');
+    const navDots = document.getElementById('navDots');
+
+    // Create dots
+    for (let i = 0; i < TOTAL_SLIDES; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+      navDots.appendChild(dot);
+    }
+
+    function updateUI() {
+      // Progress
+      progressFill.style.width = ((current + 1) / TOTAL_SLIDES * 100) + '%';
+      slideNumber.textContent = (current + 1) + ' / ' + TOTAL_SLIDES;
+
+      // Buttons
+      btnPrev.disabled = current === 0;
+      btnNext.textContent = current === TOTAL_SLIDES - 1 ? '最初に戻る ↺' : '次へ →';
+
+      // Dots
+      navDots.querySelectorAll('.nav-dot').forEach((dot, i) => {
+        dot.className = 'nav-dot' + (i === current ? ' active' : '');
+      });
+    }
+
+    function goTo(index) {
+      if (isAnimating || index === current) return;
+      isAnimating = true;
+
+      const prev = slides[current];
+      const next = slides[index];
+
+      // Reset animate-up elements so they replay
+      next.querySelectorAll('.animate-up').forEach(el => {
+        el.style.animation = 'none';
+        el.offsetHeight;
+      });
+
+      // Hide previous slide
+      prev.classList.remove('active');
+
+      // Show next slide
+      next.classList.add('active');
+      next.scrollTop = 0;
+
+      // Re-trigger animations after a frame
+      requestAnimationFrame(() => {
+        next.querySelectorAll('.animate-up').forEach(el => {
+          el.style.animation = '';
+        });
+      });
+
+      setTimeout(() => {
+        isAnimating = false;
+      }, 500);
+
+      current = index;
+      updateUI();
+    }
+
+    btnNext.addEventListener('click', () => {
+      if (current === TOTAL_SLIDES - 1) {
+        goTo(0);
+      } else {
+        goTo(current + 1);
+      }
+    });
+
+    btnPrev.addEventListener('click', () => {
+      if (current > 0) goTo(current - 1);
+    });
+
+    // Swipe support
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+      touchEndX = e.changedTouches[0].screenX;
+      const diff = touchStartX - touchEndX;
+      if (Math.abs(diff) > 60) {
+        if (diff > 0 && current < TOTAL_SLIDES - 1) goTo(current + 1);
+        else if (diff < 0 && current > 0) goTo(current - 1);
+      }
+    }, { passive: true });
+
+    updateUI();
+  </script>
+</body>
+</html>
