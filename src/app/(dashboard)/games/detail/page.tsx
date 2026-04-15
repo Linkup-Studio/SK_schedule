@@ -24,9 +24,21 @@ import {
 import { cn } from "@/lib/utils";
 import { fetchGameById, fetchAttendancesByGame, upsertAttendance, deleteGame, deleteAttendance } from "@/lib/supabase-data";
 import { GameTypeBadge, GradeBadge, AttendanceBadge } from "@/components/common/badges";
-import type { AttendanceStatusValue } from "@/lib/constants";
+import type { GameType, AttendanceStatusValue } from "@/lib/constants";
 import type { Game, Attendance } from "@/lib/types";
 import { Suspense } from "react";
+
+// 安全な日付フォーマット用関数
+const safeFormat = (dateValue: string | Date | null | undefined, fmt: string) => {
+  if (!dateValue) return "";
+  const d = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
+  if (isNaN(d.getTime())) return "（未定）"; // Invalid Date回避
+  try {
+    return format(d, fmt, { locale: ja });
+  } catch (e) {
+    return "（形式エラー）";
+  }
+};
 
 function GameDetailContent() {
   const searchParams = useSearchParams();
@@ -78,7 +90,7 @@ function GameDetailContent() {
   const handleCopyInfo = useCallback(() => {
     if (!game) return;
     const dateStart = new Date(game.dateStart);
-    const text = [`📅 ${game.title}`, `日時: ${format(dateStart, "M月d日（E） HH:mm", { locale: ja })}`, game.meetingTime ? `集合: ${game.meetingTime}${game.meetingPlace ? ` @ ${game.meetingPlace}` : ""}` : "", `会場: ${game.venueName}`, game.venueAddress ? `住所: ${game.venueAddress}` : "", game.items ? `持ち物: ${game.items}` : ""].filter(Boolean).join("\n");
+    const text = [`📅 ${game.title}`, `日時: ${safeFormat(dateStart, "M月d日（E） HH:mm")}`, game.meetingTime ? `集合: ${game.meetingTime}${game.meetingPlace ? ` @ ${game.meetingPlace}` : ""}` : "", `会場: ${game.venueName}`, game.venueAddress ? `住所: ${game.venueAddress}` : "", game.items ? `持ち物: ${game.items}` : ""].filter(Boolean).join("\n");
     navigator.clipboard.writeText(text).then(() => { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); });
   }, [game]);
 
@@ -90,8 +102,9 @@ function GameDetailContent() {
   }
 
   const dateStart = new Date(game.dateStart);
-  const isPast = dateStart < new Date();
-  const daysUntil = differenceInDays(dateStart, new Date());
+  const isValidDate = !isNaN(dateStart.getTime());
+  const isPast = isValidDate && dateStart < new Date();
+  const daysUntil = isValidDate ? differenceInDays(dateStart, new Date()) : -1;
   const attendCnt = attendances.filter((a) => a.status === "attend").length;
   const absentCnt = attendances.filter((a) => a.status === "absent").length;
   const undecidedCnt = attendances.filter((a) => a.status === "undecided").length;
@@ -138,7 +151,7 @@ function GameDetailContent() {
       )}
 
       <div className="bg-surface rounded-2xl border border-border divide-y divide-border/50 shadow-sm overflow-hidden">
-        <InfoRow icon={<Calendar className="w-4.5 h-4.5 text-primary" />} label="日時" value={<div><p className="font-bold text-[14px]">{format(dateStart, "M月d日（E）", { locale: ja })}</p><p className="text-[12px] text-muted mt-0.5">{format(dateStart, "HH:mm")}{game.dateEnd && ` 〜 ${format(new Date(game.dateEnd), "HH:mm")}`}</p></div>} />
+        <InfoRow icon={<Calendar className="w-4.5 h-4.5 text-primary" />} label="日時" value={<div><p className="font-bold text-[14px]">{safeFormat(game.dateStart, "M月d日（E）")}</p><p className="text-[12px] text-muted mt-0.5">{safeFormat(game.dateStart, "HH:mm")}{game.dateEnd && ` 〜 ${safeFormat(game.dateEnd, "HH:mm")}`}</p></div>} />
         {game.meetingTime && (<InfoRow icon={<Clock className="w-4.5 h-4.5 text-warning" />} label="集合" value={<div><p className="font-bold text-[14px]">{game.meetingTime}</p>{game.meetingPlace && <p className="text-[12px] text-muted mt-0.5">{game.meetingPlace}</p>}</div>} />)}
         <InfoRow icon={<MapPin className="w-4.5 h-4.5 text-error" />} label="会場" value={<div><p className="font-bold text-[14px]">{game.venueName}</p>{game.venueAddress && <p className="text-[12px] text-muted mt-0.5 leading-relaxed">{game.venueAddress}</p>}{game.venueUrl && <a href={game.venueUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] text-primary font-bold mt-1.5"><ExternalLink className="w-3.5 h-3.5" />Google Maps</a>}</div>} />
         {game.items && (<InfoRow icon={<Package className="w-4.5 h-4.5 text-info" />} label="持ち物" value={<p className="text-[13px] leading-relaxed">{game.items}</p>} />)}
@@ -149,7 +162,7 @@ function GameDetailContent() {
         <div className="bg-surface rounded-2xl border-2 border-primary/20 p-4 space-y-4 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-primary-light" />
           {submitSuccess && (<div className="bg-attend/10 border border-attend/20 rounded-xl p-3 text-center animate-fade-in-up"><p className="text-attend font-bold text-[13px]">✅ 出欠を保存しました！</p></div>)}
-          <div className="text-center mb-2"><h2 className="font-black text-[15px] mb-2">出欠を送信</h2>{game.rsvpDeadline ? <div className="inline-flex items-center gap-1.5 bg-error/10 border-2 border-error/25 rounded-xl px-4 py-2"><span className="text-[13px] font-black text-error">⏰ 締切: {format(new Date(game.rsvpDeadline), "M月d日（E）", { locale: ja })}まで</span></div> : <p className="text-[11px] text-muted">いつでも回答・変更できます</p>}</div>
+          <div className="text-center mb-2"><h2 className="font-black text-[15px] mb-2">出欠を送信</h2>{game.rsvpDeadline ? <div className="inline-flex items-center gap-1.5 bg-error/10 border-2 border-error/25 rounded-xl px-4 py-2"><span className="text-[13px] font-black text-error">⏰ 締切: {safeFormat(game.rsvpDeadline, "M月d日（E）")}まで</span></div> : <p className="text-[11px] text-muted">いつでも回答・変更できます</p>}</div>
           <div className="space-y-3">
             <div><label className="text-[11px] font-bold text-muted ml-1 mb-1 block">選手のお名前（必須）</label><input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="例: 佐藤 太郎" className="w-full bg-background border border-border px-4 py-3 rounded-xl text-[15px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" /></div>
             <div className="space-y-3">
