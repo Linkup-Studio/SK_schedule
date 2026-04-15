@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Save, Calendar, MapPin, Users, FileText, Clock, Package, Loader2 } from "lucide-react";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { GAME_TYPES, GRADES } from "@/lib/constants";
 import { fetchGameById, updateGame } from "@/lib/supabase-data";
@@ -47,11 +48,11 @@ function EditGameContent() {
       setSelectedGrades(game.grades);
       setTitle(game.title);
       setOpponent(game.opponent ?? "");
-      // datetime-local用にフォーマット
-      setDateStart(game.dateStart ? new Date(game.dateStart).toISOString().slice(0, 16) : "");
-      setDateEnd(game.dateEnd ? new Date(game.dateEnd).toISOString().slice(0, 16) : "");
+      // 日本時間（ローカルタイム）として正しく表示するため、date-fnsのformatを使用
+      setDateStart(game.dateStart ? format(new Date(game.dateStart), "yyyy-MM-dd'T'HH:mm") : "");
+      setDateEnd(game.dateEnd ? format(new Date(game.dateEnd), "yyyy-MM-dd'T'HH:mm") : "");
       setMeetingTime(game.meetingTime ?? "");
-      setRsvpDeadline(game.rsvpDeadline ? new Date(game.rsvpDeadline).toISOString().slice(0, 10) : "");
+      setRsvpDeadline(game.rsvpDeadline ? format(new Date(game.rsvpDeadline), "yyyy-MM-dd") : "");
       setVenueName(game.venueName);
       setVenueAddress(game.venueAddress ?? "");
       setMeetingPlace(game.meetingPlace ?? "");
