@@ -50,17 +50,21 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   }, [currentTeam]);
 
   const findTeamByPassphrase = async (passphrase: string): Promise<Team | null> => {
-    console.log("[DEBUG] findTeamByPassphrase called with:", passphrase);
-    console.log("[DEBUG] supabaseUrl:", process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log("[DEBUG] anonKey prefix:", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 20));
+    // まず全チームを取得してみる（接続テスト）
+    const allResult = await supabase.from("teams").select("*");
+    console.log("[DEBUG] all teams:", allResult.data, "error:", allResult.error);
+
+    if (allResult.error) {
+      console.log("[DEBUG] 接続エラー:", allResult.error.message, allResult.error.code);
+      // エラー詳細をwindowに保存（画面表示用）
+      (window as unknown as Record<string, unknown>).__debugError = allResult.error;
+    }
 
     const { data, error } = await supabase
       .from("teams")
       .select("*")
       .eq("passphrase", passphrase)
       .single();
-
-    console.log("[DEBUG] query result - data:", data, "error:", error);
 
     if (error || !data) return null;
     return toTeam(data);

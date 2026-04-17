@@ -30,7 +30,18 @@ export function GlobalLock({ children }: { children: React.ReactNode }) {
     setError(false);
 
     try {
-      const info = `URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? "未設定"}\nKey: ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 15) ?? "未設定"}...\nInput: "${inputCode.trim()}"`;
+      // 接続テスト: 全チーム取得
+      const { supabase } = await import("@/lib/supabase");
+      const allResult = await supabase.from("teams").select("id, passphrase");
+
+      const info = [
+        `URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? "未設定"}`,
+        `Key: ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 15) ?? "未設定"}...`,
+        `Input: "${inputCode.trim()}"`,
+        `全チーム取得: ${allResult.error ? "エラー: " + allResult.error.message + " (code:" + allResult.error.code + ")" : "成功"}`,
+        `データ件数: ${allResult.data?.length ?? 0}`,
+        allResult.data ? `データ: ${JSON.stringify(allResult.data)}` : "",
+      ].filter(Boolean).join("\n");
       setDebugInfo(info);
 
       const team = await findTeamByPassphrase(inputCode.trim());
