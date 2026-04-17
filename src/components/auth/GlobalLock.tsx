@@ -9,6 +9,7 @@ export function GlobalLock({ children }: { children: React.ReactNode }) {
   const [inputCode, setInputCode] = useState("");
   const [error, setError] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [debugInfo, setDebugInfo] = useState("");
 
   // チーム情報をlocalStorageから復元中
   if (isLoading) {
@@ -28,12 +29,20 @@ export function GlobalLock({ children }: { children: React.ReactNode }) {
     setChecking(true);
     setError(false);
 
-    const team = await findTeamByPassphrase(inputCode.trim());
-    if (team) {
-      setCurrentTeam(team);
-    } else {
+    try {
+      const info = `URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? "未設定"}\nKey: ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 15) ?? "未設定"}...\nInput: "${inputCode.trim()}"`;
+      setDebugInfo(info);
+
+      const team = await findTeamByPassphrase(inputCode.trim());
+      if (team) {
+        setCurrentTeam(team);
+      } else {
+        setDebugInfo(info + "\n結果: チームが見つかりません");
+        setError(true);
+      }
+    } catch (err) {
+      setDebugInfo(`エラー: ${err instanceof Error ? err.message : String(err)}`);
       setError(true);
-      setTimeout(() => setError(false), 2000);
     }
     setChecking(false);
   };
@@ -74,6 +83,11 @@ export function GlobalLock({ children }: { children: React.ReactNode }) {
                 <p className="text-[11px] font-bold text-error mt-2 animate-fade-in-up">
                   合言葉が一致しません
                 </p>
+              )}
+              {debugInfo && (
+                <pre className="text-[10px] text-left text-muted mt-3 p-2 bg-gray-100 rounded-lg whitespace-pre-wrap break-all">
+                  {debugInfo}
+                </pre>
               )}
             </div>
 
