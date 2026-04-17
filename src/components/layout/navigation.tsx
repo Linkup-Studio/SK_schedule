@@ -4,16 +4,21 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { TEAM_NAME } from "@/lib/constants";
+import { useTeam } from "@/lib/team-context";
 import { Home, Calendar, Megaphone, Plus } from "lucide-react";
 
 /** モバイル専用ヘッダー — ロゴ5回タップで管理者モード切替 */
 export function Header() {
+  const { currentTeam } = useTeam();
   const [tapCount, setTapCount] = useState(0);
   const [showDialog, setShowDialog] = useState(false);
   const [passcode, setPasscode] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const teamName = currentTeam?.name ?? "BallPark";
+  const teamShort = currentTeam ? currentTeam.name.slice(0, 2) : "BP";
+  const adminPin = currentTeam?.adminPin ?? "1234";
 
   useEffect(() => {
     setIsAdmin(localStorage.getItem("sk_admin") === "true");
@@ -23,7 +28,6 @@ export function Header() {
     const next = tapCount + 1;
     setTapCount(next);
 
-    // タイマーリセット（2秒以内に5回タップ必要）
     if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
     tapTimerRef.current = setTimeout(() => setTapCount(0), 2000);
 
@@ -32,13 +36,11 @@ export function Header() {
       if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
 
       if (isAdmin) {
-        // 管理者モード終了
         localStorage.removeItem("sk_admin");
         setIsAdmin(false);
         window.dispatchEvent(new Event("storage"));
         alert("管理者モードを終了しました。");
       } else {
-        // パスコード入力ダイアログ表示
         setShowDialog(true);
         setPasscode("");
       }
@@ -47,7 +49,7 @@ export function Header() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passcode === "1234") {
+    if (passcode === adminPin) {
       localStorage.setItem("sk_admin", "true");
       setIsAdmin(true);
       setShowDialog(false);
@@ -71,9 +73,9 @@ export function Header() {
               "w-7 h-7 rounded-lg flex items-center justify-center transition-all",
               isAdmin ? "bg-gradient-to-br from-amber-500 to-orange-500" : "bg-gradient-hero"
             )}>
-              <span className="text-white font-black text-[11px]">SK</span>
+              <span className="text-white font-black text-[11px]">{teamShort}</span>
             </div>
-            <span className="font-black text-sm text-primary">{TEAM_NAME}</span>
+            <span className="font-black text-sm text-primary">{teamName}</span>
             {isAdmin && <Link href="/members" className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200 active:scale-95 transition-transform">管理者</Link>}
           </button>
         </div>
@@ -117,7 +119,7 @@ export function Header() {
   );
 }
 
-/** 
+/**
  * ボトムナビ（管理設定タブなし）
  * 管理者モードのときだけ「予定登録」が表示される
  */

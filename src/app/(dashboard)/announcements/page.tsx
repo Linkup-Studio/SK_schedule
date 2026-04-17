@@ -6,26 +6,31 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Megaphone, ChevronRight, Pin, Loader2, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTeam } from "@/lib/team-context";
 import { fetchAnnouncements } from "@/lib/supabase-data";
 import { GRADES } from "@/lib/constants";
 import type { Announcement } from "@/lib/types";
 
 /** お知らせ一覧ページ — Supabase接続版 */
 export default function AnnouncementsPage() {
+  const { currentTeam } = useTeam();
+  const teamId = currentTeam?.id ?? "";
+
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     setIsAdmin(localStorage.getItem("sk_admin") === "true");
+    if (!teamId) return;
     async function load() {
       setLoading(true);
-      const data = await fetchAnnouncements();
+      const data = await fetchAnnouncements(teamId);
       setAnnouncements(data);
       setLoading(false);
     }
     load();
-  }, []);
+  }, [teamId]);
 
   if (loading) {
     return (

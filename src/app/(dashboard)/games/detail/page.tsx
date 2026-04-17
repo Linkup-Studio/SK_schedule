@@ -22,6 +22,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTeam } from "@/lib/team-context";
 import { fetchGameById, fetchAttendancesByGame, upsertAttendance, deleteGame, deleteAttendance } from "@/lib/supabase-data";
 import { GameTypeBadge, GradeBadge, AttendanceBadge } from "@/components/common/badges";
 import type { GameType, AttendanceStatusValue } from "@/lib/constants";
@@ -43,6 +44,8 @@ const safeFormat = (dateValue: string | Date | null | undefined, fmt: string) =>
 function GameDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { currentTeam } = useTeam();
+  const teamId = currentTeam?.id ?? "";
   const id = searchParams.get("id") ?? "";
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -76,7 +79,7 @@ function GameDetailContent() {
     if (!playerName.trim()) { alert("選手のお名前を入力してください"); return; }
     if (!selectedStatus) { alert("出欠（○・×・△）のいずれかを選択してください"); return; }
     setSubmitting(true);
-    const result = await upsertAttendance({ gameId: id, playerName: playerName.trim(), status: selectedStatus, reason: (selectedStatus === "absent" || selectedStatus === "undecided") ? reason : undefined });
+    const result = await upsertAttendance(teamId, { gameId: id, playerName: playerName.trim(), status: selectedStatus, reason: (selectedStatus === "absent" || selectedStatus === "undecided") ? reason : undefined });
     setSubmitting(false);
     if (result) {
       const fresh = await fetchAttendancesByGame(id);

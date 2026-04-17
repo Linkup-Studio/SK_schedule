@@ -5,6 +5,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay,
 import { ja } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, List, CalendarDays, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTeam } from "@/lib/team-context";
 import { fetchGames } from "@/lib/supabase-data";
 import { GAME_TYPES } from "@/lib/constants";
 import type { GradeValue } from "@/lib/constants";
@@ -16,6 +17,9 @@ const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
 /** カレンダーページ — Supabase接続版 */
 export default function CalendarPage() {
+  const { currentTeam } = useTeam();
+  const teamId = currentTeam?.id ?? "";
+
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -24,14 +28,15 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   useEffect(() => {
+    if (!teamId) return;
     async function load() {
       setLoading(true);
-      const games = await fetchGames();
+      const games = await fetchGames(teamId);
       setAllGames(games);
       setLoading(false);
     }
     load();
-  }, []);
+  }, [teamId]);
 
   const filteredGames = gradeFilter
     ? allGames.filter((g) => g.grades.includes(gradeFilter))

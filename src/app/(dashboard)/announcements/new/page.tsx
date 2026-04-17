@@ -7,11 +7,14 @@ import { ArrowLeft, Save, Megaphone, Users, FileText, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GRADES } from "@/lib/constants";
 import type { GradeValue } from "@/lib/constants";
+import { useTeam } from "@/lib/team-context";
 import { createAnnouncement } from "@/lib/supabase-data";
 
 /** お知らせ投稿ページ — モバイル最適化 */
 export default function NewAnnouncementPage() {
   const router = useRouter();
+  const { currentTeam } = useTeam();
+  const teamId = currentTeam?.id ?? "";
   const [selectedGrades, setSelectedGrades] = useState<GradeValue[]>([1, 2, 3]);
   const [isPinned, setIsPinned] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -44,7 +47,7 @@ export default function NewAnnouncementPage() {
     setIsSaving(true);
     
     // 画像のアップロードはバックエンド側の仕様により現在未対応のためテキストのみ保存
-    const newAnnouncement = await createAnnouncement({
+    const newAnnouncement = await createAnnouncement(teamId, {
       title: title.trim(),
       body: body.trim(),
       targetGrades: selectedGrades,
