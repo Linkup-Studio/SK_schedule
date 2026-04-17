@@ -30,29 +30,46 @@ export function GlobalLock({ children }: { children: React.ReactNode }) {
     setError(false);
 
     try {
-      // 接続テスト: 全チーム取得
-      const { supabase } = await import("@/lib/supabase");
-      const allResult = await supabase.from("teams").select("id, passphrase");
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+
+      // 直接REST APIでテスト
+      const restUrl = `${url}/rest/v1/teams?select=id,passphrase&passphrase=eq.${inputCode.trim()}`;
+      const res = await fetch(restUrl, {
+        headers: {
+          "apikey": key,
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json",
+        },
+      });
 
       const info = [
-        `URL: ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? "未設定"}`,
-        `Key: ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.substring(0, 15) ?? "未設定"}...`,
-        `Input: "${inputCode.trim()}"`,
-        `全チーム取得: ${allResult.error ? "エラー: " + allResult.error.message + " (code:" + allResult.error.code + ")" : "成功"}`,
-        `データ件数: ${allResult.data?.length ?? 0}`,
-        allResult.data ? `データ: ${JSON.stringify(allResult.data)}` : "",
-      ].filter(Boolean).join("\n");
-      setDebugInfo(info);
+        `URL: ${url}`,
+        `Key: ${key.substring(0, 15)}...`,
+        `REST: ${res.status} ${res.statusText}`,
+      ];
 
-      const team = await findTeamByPassphrase(inputCode.trim());
-      if (team) {
-        setCurrentTeam(team);
+      if (res.ok) {
+        const json = await res.json();
+        info.push(`データ: ${JSON.stringify(json)}`);
       } else {
-        setDebugInfo(info + "\n結果: チームが見つかりません");
-        setError(true);
+        const text = await res.text();
+        info.push(`エラー本文: ${text.substring(0, 200)}`);
       }
+
+      setDebugInfo(info.join("\n"));
+
+      // 成功したら通常フローへ
+      if (res.ok) {
+        const team = await findTeamByPassphrase(inputCode.trim());
+        if (team) {
+          setCurrentTeam(team);
+          return;
+        }
+      }
+      setError(true);
     } catch (err) {
-      setDebugInfo(`エラー: ${err instanceof Error ? err.message : String(err)}`);
+      setDebugInfo(`fetch例外: ${err instanceof Error ? err.message : String(err)}`);
       setError(true);
     }
     setChecking(false);
