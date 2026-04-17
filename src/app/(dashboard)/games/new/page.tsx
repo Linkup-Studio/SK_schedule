@@ -6,15 +6,12 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Save, Calendar, MapPin, Users, FileText, Clock, Package, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GAME_TYPES, GRADES } from "@/lib/constants";
-import { useTeam } from "@/lib/team-context";
 import { createGame, createAnnouncement } from "@/lib/supabase-data";
 import type { GameType, GradeValue } from "@/lib/constants";
 
 /** 試合登録ページ — Supabase接続版 */
 export default function NewGamePage() {
   const router = useRouter();
-  const { currentTeam } = useTeam();
-  const teamId = currentTeam?.id ?? "";
   const [type, setType] = useState<GameType>("practice");
   const [selectedGrades, setSelectedGrades] = useState<GradeValue[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -73,7 +70,7 @@ export default function NewGamePage() {
 
     setIsSaving(true);
 
-    const result = await createGame(teamId, {
+    const result = await createGame({
       title: title.trim(),
       type,
       grades: selectedGrades,
@@ -110,7 +107,7 @@ export default function NewGamePage() {
         "出欠の回答をお願いします！",
       ].filter(Boolean).join("\n");
 
-      await createAnnouncement(teamId, {
+      await createAnnouncement({
         title: `${typeLabel}のお知らせ: ${title.trim()}`,
         body: annBody,
         targetGrades: selectedGrades,

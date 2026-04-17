@@ -21,7 +21,6 @@ export interface Database {
           rsvp_deadline: string | null;
           items: string | null;
           notes: string | null;
-          team_id: string;
           created_at: string;
         };
         Insert: {
@@ -39,7 +38,6 @@ export interface Database {
           rsvp_deadline?: string | null;
           items?: string | null;
           notes?: string | null;
-          team_id?: string;
           created_at?: string;
         };
         Update: {
@@ -57,7 +55,6 @@ export interface Database {
           rsvp_deadline?: string | null;
           items?: string | null;
           notes?: string | null;
-          team_id?: string;
           created_at?: string;
         };
       };
@@ -68,7 +65,6 @@ export interface Database {
           player_name: string;
           status: "attend" | "absent" | "undecided";
           reason: string | null;
-          team_id: string;
           created_at: string;
         };
         Insert: {
@@ -77,7 +73,6 @@ export interface Database {
           player_name: string;
           status: "attend" | "absent" | "undecided";
           reason?: string | null;
-          team_id?: string;
           created_at?: string;
         };
         Update: {
@@ -86,7 +81,6 @@ export interface Database {
           player_name?: string;
           status?: "attend" | "absent" | "undecided";
           reason?: string | null;
-          team_id?: string;
           created_at?: string;
         };
       };
@@ -97,7 +91,6 @@ export interface Database {
           body: string;
           target_grades: number[];
           is_pinned: boolean;
-          team_id: string;
           created_at: string;
         };
         Insert: {
@@ -106,7 +99,6 @@ export interface Database {
           body: string;
           target_grades: number[];
           is_pinned?: boolean;
-          team_id?: string;
           created_at?: string;
         };
         Update: {
@@ -115,7 +107,6 @@ export interface Database {
           body?: string;
           target_grades?: number[];
           is_pinned?: boolean;
-          team_id?: string;
           created_at?: string;
         };
       };

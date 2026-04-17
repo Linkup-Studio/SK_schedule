@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Inter } from "next/font/google";
 import "./globals.css";
-import { TeamProvider } from "@/lib/team-context";
 
 const notoSansJP = Noto_Sans_JP({
   variable: "--font-noto-sans-jp",
@@ -53,9 +52,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="BallPark" />
       </head>
-      <body>
-        <TeamProvider>{children}</TeamProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

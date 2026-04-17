@@ -16,30 +16,25 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTeam } from "@/lib/team-context";
+import { TEAM_NAME } from "@/lib/constants";
 import { fetchUpcomingGames, fetchAnnouncements, fetchAttendanceSummary } from "@/lib/supabase-data";
 import { GameTypeBadge, GradeBadge, AttendanceSummaryBar } from "@/components/common/badges";
 import type { Game, Announcement, AttendanceSummary } from "@/lib/types";
 
 /** 管理者ダッシュボード — Supabase接続版 */
 export default function DashboardPage() {
-  const { currentTeam } = useTeam();
-  const teamId = currentTeam?.id ?? "";
-  const teamName = currentTeam?.name ?? "BallPark";
-
   const [upcomingGames, setUpcomingGames] = useState<Game[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [summaries, setSummaries] = useState<Record<string, AttendanceSummary>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!teamId) return;
     async function load() {
       setLoading(true);
       try {
         const [games, anns] = await Promise.all([
-          fetchUpcomingGames(teamId),
-          fetchAnnouncements(teamId),
+          fetchUpcomingGames(),
+          fetchAnnouncements(),
         ]);
         setUpcomingGames(games);
         setAnnouncements(anns);
@@ -59,7 +54,7 @@ export default function DashboardPage() {
       }
     }
     load();
-  }, [teamId]);
+  }, []);
 
   const gradeStats = [
     { grade: "中3", rate: 92, color: "bg-purple-500" },
@@ -100,7 +95,7 @@ export default function DashboardPage() {
             })()}
           </h1>
           <p className="text-xs text-primary-100">
-            {teamName}の予定をチェック
+            {TEAM_NAME}の予定をチェック
           </p>
         </div>
       </section>
