@@ -28,8 +28,7 @@ export const metadata: Metadata = {
   title: "BallPark | 一色SKクラブ",
   description: "一色SKクラブの試合スケジュール管理・出欠確認アプリ",
   appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
+    capable: false,
     title: "BallPark",
   },
   formatDetection: {
@@ -48,8 +47,6 @@ export default function RootLayout({
       className={`${notoSansJP.variable} ${inter.variable} antialiased`}
     >
       <head>
-        {/* iOS PWA対応 */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="BallPark" />
       </head>
       <body>{children}</body>
