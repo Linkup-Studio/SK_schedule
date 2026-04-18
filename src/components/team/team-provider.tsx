@@ -46,6 +46,9 @@ export function TeamProvider({
         .eq("id", teamSlug)
         .single();
 
+      if (error) {
+        console.error("Team load error:", error.message, error.code);
+      }
       if (!error && data) {
         setTeam({
           id: data.id,
