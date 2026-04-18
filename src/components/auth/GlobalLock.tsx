@@ -2,28 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { Lock, ArrowRight, ShieldCheck } from "lucide-react";
-import { TEAM_NAME } from "@/lib/constants";
-
-// ==========================================
-// 【重要】部外者ブロック用のチーム共通パスワード
-// ==========================================
-const TEAM_PASSCODE = "sk2026"; 
+import { useTeam } from "@/components/team/team-provider";
 
 export function GlobalLock({ children }: { children: React.ReactNode }) {
+  const { team, teamSlug, loading: teamLoading } = useTeam();
+  const storageKey = `${teamSlug}_team_auth`;
+
   const [isUnlocked, setIsUnlocked] = useState<boolean | null>(null);
   const [inputCode, setInputCode] = useState("");
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    // 初回アクセス時に、以前ロック解除した記録があるかチェック
-    const isAuth = localStorage.getItem("sk_team_auth") === "true";
+    const isAuth = localStorage.getItem(storageKey) === "true";
     setIsUnlocked(isAuth);
-  }, []);
+  }, [storageKey]);
 
   const handleUnlock = (e: React.FormEvent) => {
     e.preventDefault();
-    if (inputCode === TEAM_PASSCODE) {
-      localStorage.setItem("sk_team_auth", "true");
+    if (team && inputCode === team.passcode) {
+      localStorage.setItem(storageKey, "true");
       setIsUnlocked(true);
     } else {
       setError(true);
@@ -31,21 +28,18 @@ export function GlobalLock({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // SSR時のハイドレーション不一致を防ぐため、判定前は何も表示しない（またはローディング）
-  if (isUnlocked === null) {
+  if (isUnlocked === null || teamLoading) {
     return <div className="h-[100dvh] bg-background" />;
   }
 
-  // ロック解除済みの場合は中身（アプリ本体）を表示
   if (isUnlocked) {
     return <>{children}</>;
   }
 
-  // ロック画面
+  const teamName = team?.name ?? teamSlug;
+
   return (
     <div className="min-h-[100dvh] bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      
-      {/* 背景装飾 */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-40">
         <div className="absolute -top-[20%] -left-[10%] w-[70%] h-[50%] bg-primary/20 blur-[100px] rounded-full" />
         <div className="absolute top-[60%] -right-[20%] w-[80%] h-[60%] bg-blue-400/20 blur-[120px] rounded-full" />
@@ -56,10 +50,10 @@ export function GlobalLock({ children }: { children: React.ReactNode }) {
           <div className="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto mb-6 transform -rotate-6 shadow-inner">
             <Lock className="w-8 h-8 text-primary" />
           </div>
-          
+
           <h1 className="text-xl font-black text-foreground mb-2">チーム専用ページ</h1>
           <p className="text-[12px] text-muted mb-8 leading-relaxed">
-            このページは {TEAM_NAME} の<br />関係者専用です。合言葉を入力してください。
+            このページは {teamName} の<br />関係者専用です。合言葉を入力してください。
           </p>
 
           <form onSubmit={handleUnlock} className="space-y-4">

@@ -2,13 +2,13 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { DEFAULT_TEAM_SLUG } from "@/lib/teams-config";
 
 export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // クライアントサイドでダッシュボードへ遷移
-    router.replace("/dashboard");
+    router.replace(`/${DEFAULT_TEAM_SLUG}/dashboard`);
   }, [router]);
 
   return (

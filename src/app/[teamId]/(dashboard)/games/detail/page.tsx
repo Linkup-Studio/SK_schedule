@@ -6,43 +6,31 @@ import Link from "next/link";
 import { format, differenceInDays } from "date-fns";
 import { ja } from "date-fns/locale";
 import {
-  ArrowLeft,
-  MapPin,
-  Clock,
-  Calendar,
-  Users,
-  Package,
-  FileText,
-  ExternalLink,
-  Share2,
-  Copy,
-  CheckCheck,
-  Loader2,
-  Pencil,
-  Trash2,
+  ArrowLeft, MapPin, Clock, Calendar, Users, Package, FileText,
+  ExternalLink, Copy, CheckCheck, Loader2, Pencil, Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTeam } from "@/components/team/team-provider";
+import { useTeamLink } from "@/hooks/use-team-link";
 import { fetchGameById, fetchAttendancesByGame, upsertAttendance, deleteGame, deleteAttendance } from "@/lib/supabase-data";
 import { GameTypeBadge, GradeBadge, AttendanceBadge } from "@/components/common/badges";
-import type { GameType, AttendanceStatusValue } from "@/lib/constants";
+import type { AttendanceStatusValue } from "@/lib/constants";
 import type { Game, Attendance } from "@/lib/types";
 import { Suspense } from "react";
 
-// 安全な日付フォーマット用関数
 const safeFormat = (dateValue: string | Date | null | undefined, fmt: string) => {
   if (!dateValue) return "";
   const d = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-  if (isNaN(d.getTime())) return "（未定）"; // Invalid Date回避
-  try {
-    return format(d, fmt, { locale: ja });
-  } catch (e) {
-    return "（形式エラー）";
-  }
+  if (isNaN(d.getTime())) return "（未定）";
+  try { return format(d, fmt, { locale: ja }); } catch { return "（形式エラー）"; }
 };
 
 function GameDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { teamSlug } = useTeam();
+  const teamLink = useTeamLink();
+  const storageKey = `${teamSlug}_admin`;
   const id = searchParams.get("id") ?? "";
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -57,26 +45,25 @@ function GameDetailContent() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
   useEffect(() => {
-    setIsAdmin(localStorage.getItem("sk_admin") === "true");
+    setIsAdmin(localStorage.getItem(storageKey) === "true");
     if (!id) return;
     async function load() {
       setLoading(true);
       const [gameData, attData] = await Promise.all([
-        fetchGameById(id),
-        fetchAttendancesByGame(id),
+        fetchGameById(id), fetchAttendancesByGame(id),
       ]);
       setGame(gameData);
       setAttendances(attData);
       setLoading(false);
     }
     load();
-  }, [id]);
+  }, [id, storageKey]);
 
   const handleFinalSubmit = async () => {
     if (!playerName.trim()) { alert("選手のお名前を入力してください"); return; }
     if (!selectedStatus) { alert("出欠（○・×・△）のいずれかを選択してください"); return; }
     setSubmitting(true);
-    const result = await upsertAttendance({ gameId: id, playerName: playerName.trim(), status: selectedStatus, reason: (selectedStatus === "absent" || selectedStatus === "undecided") ? reason : undefined });
+    const result = await upsertAttendance(teamSlug, { gameId: id, playerName: playerName.trim(), status: selectedStatus, reason: (selectedStatus === "absent" || selectedStatus === "undecided") ? reason : undefined });
     setSubmitting(false);
     if (result) {
       const fresh = await fetchAttendancesByGame(id);
@@ -98,7 +85,7 @@ function GameDetailContent() {
     return (<div className="flex items-center justify-center h-[60vh]"><div className="text-center space-y-3"><Loader2 className="w-8 h-8 text-primary animate-spin mx-auto" /><p className="text-sm text-muted font-bold">読み込み中...</p></div></div>);
   }
   if (!game) {
-    return (<div className="px-4 py-12 text-center"><h1 className="text-base font-bold mb-2">試合が見つかりません</h1><Link href="/calendar" className="text-primary font-bold text-sm">カレンダーに戻る</Link></div>);
+    return (<div className="px-4 py-12 text-center"><h1 className="text-base font-bold mb-2">試合が見つかりません</h1><Link href={teamLink("/calendar")} className="text-primary font-bold text-sm">カレンダーに戻る</Link></div>);
   }
 
   const dateStart = new Date(game.dateStart);
@@ -108,15 +95,14 @@ function GameDetailContent() {
   const attendCnt = attendances.filter((a) => a.status === "attend").length;
   const absentCnt = attendances.filter((a) => a.status === "absent").length;
   const undecidedCnt = attendances.filter((a) => a.status === "undecided").length;
-  // localStorage から登録人数を取得し、試合の対象学年の人数だけで未回答を計算
-  const savedCounts = typeof window !== "undefined" ? localStorage.getItem("sk_player_counts") : null;
+  const savedCounts = typeof window !== "undefined" ? localStorage.getItem(`${teamSlug}_player_counts`) : null;
   const gradeCounts = savedCounts ? JSON.parse(savedCounts) as Record<string, number> : {};
   const totalPlayers = game.grades.reduce((sum, g) => sum + (gradeCounts[String(g)] ?? 0), 0);
   const noAnswerCnt = Math.max(0, totalPlayers - attendCnt - absentCnt - undecidedCnt);
 
   return (
     <div className="px-4 py-4 space-y-4 pb-20">
-      <Link href="/calendar" className="inline-flex items-center gap-1 text-[13px] text-muted active:text-primary transition-colors py-1 pr-2"><ArrowLeft className="w-4 h-4" />カレンダーに戻る</Link>
+      <Link href={teamLink("/calendar")} className="inline-flex items-center gap-1 text-[13px] text-muted active:text-primary transition-colors py-1 pr-2"><ArrowLeft className="w-4 h-4" />カレンダーに戻る</Link>
 
       <div className="bg-gradient-hero rounded-2xl p-4 text-white relative overflow-hidden shadow-sm">
         <div className="relative z-10">
@@ -141,13 +127,13 @@ function GameDetailContent() {
 
       {isAdmin && (
         <div className="flex gap-2">
-          <Link href={`/games/edit?id=${game.id}`} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 border-primary/20 bg-primary-50 text-primary text-[13px] font-bold active:scale-95 transition-all">
+          <Link href={teamLink(`/games/edit?id=${game.id}`)} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 border-primary/20 bg-primary-50 text-primary text-[13px] font-bold active:scale-95 transition-all">
             <Pencil className="w-3.5 h-3.5" />編集
           </Link>
-          <button onClick={async () => { if (!confirm("この予定を削除しますか？")) return; const ok = await deleteGame(game.id); if (ok) { alert("削除しました"); router.push("/calendar"); } else { alert("削除に失敗しました"); }}} className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-red-200 bg-red-50 text-error text-[13px] font-bold active:scale-95 transition-all">
+          <button onClick={async () => { if (!confirm("この予定を削除しますか？")) return; const ok = await deleteGame(game.id); if (ok) { alert("削除しました"); router.push(teamLink("/calendar")); } else { alert("削除に失敗しました"); }}} className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border-2 border-red-200 bg-red-50 text-error text-[13px] font-bold active:scale-95 transition-all">
             <Trash2 className="w-3.5 h-3.5" />削除
           </button>
-      </div>
+        </div>
       )}
 
       <div className="bg-surface rounded-2xl border border-border divide-y divide-border/50 shadow-sm overflow-hidden">

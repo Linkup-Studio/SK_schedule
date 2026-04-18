@@ -6,23 +6,23 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import {
   CalendarDays,
-  TrendingUp,
   Megaphone,
   ChevronRight,
   Trophy,
   MapPin,
   Clock,
-  Users,
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TEAM_NAME } from "@/lib/constants";
+import { useTeam } from "@/components/team/team-provider";
+import { useTeamLink } from "@/hooks/use-team-link";
 import { fetchUpcomingGames, fetchAnnouncements, fetchAttendanceSummary } from "@/lib/supabase-data";
 import { GameTypeBadge, GradeBadge, AttendanceSummaryBar } from "@/components/common/badges";
 import type { Game, Announcement, AttendanceSummary } from "@/lib/types";
 
-/** 管理者ダッシュボード — Supabase接続版 */
 export default function DashboardPage() {
+  const { team, teamSlug } = useTeam();
+  const teamLink = useTeamLink();
   const [upcomingGames, setUpcomingGames] = useState<Game[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [summaries, setSummaries] = useState<Record<string, AttendanceSummary>>({});
@@ -33,17 +33,16 @@ export default function DashboardPage() {
       setLoading(true);
       try {
         const [games, anns] = await Promise.all([
-          fetchUpcomingGames(),
-          fetchAnnouncements(),
+          fetchUpcomingGames(teamSlug),
+          fetchAnnouncements(teamSlug),
         ]);
         setUpcomingGames(games);
         setAnnouncements(anns);
 
-        // 各試合の出欠サマリーを取得
         const sums: Record<string, AttendanceSummary> = {};
         await Promise.all(
           games.map(async (g) => {
-            sums[g.id] = await fetchAttendanceSummary(g.id, g.grades);
+            sums[g.id] = await fetchAttendanceSummary(g.id, teamSlug, g.grades);
           })
         );
         setSummaries(sums);
@@ -54,13 +53,9 @@ export default function DashboardPage() {
       }
     }
     load();
-  }, []);
+  }, [teamSlug]);
 
-  const gradeStats = [
-    { grade: "中3", rate: 92, color: "bg-purple-500" },
-    { grade: "中2", rate: 85, color: "bg-emerald-500" },
-    { grade: "中1", rate: 78, color: "bg-blue-500" },
-  ];
+  const teamName = team?.name ?? teamSlug;
 
   if (loading) {
     return (
@@ -75,7 +70,6 @@ export default function DashboardPage() {
 
   return (
     <div className="px-4 py-4 space-y-4">
-      {/* ウェルカムバナー */}
       <section className="bg-gradient-hero rounded-2xl p-4 text-white relative overflow-hidden animate-fade-in-up">
         <div className="absolute top-0 right-0 w-24 h-24 opacity-10">
           <Trophy className="w-full h-full" />
@@ -88,21 +82,18 @@ export default function DashboardPage() {
             {(() => {
               const h = new Date().getHours();
               const m = new Date().getMinutes();
-              const t = h * 60 + m; // 分換算
-              if (t >= 181 && t <= 600) return "おはようございます 👋";  // 3:01〜10:00
-              if (t >= 601 && t <= 1080) return "こんにちは 👋";          // 10:01〜18:00
-              return "こんばんは 🌙";                                     // 18:01〜3:00
+              const t = h * 60 + m;
+              if (t >= 181 && t <= 600) return "おはようございます 👋";
+              if (t >= 601 && t <= 1080) return "こんにちは 👋";
+              return "こんばんは 🌙";
             })()}
           </h1>
           <p className="text-xs text-primary-100">
-            {TEAM_NAME}の予定をチェック
+            {teamName}の予定をチェック
           </p>
         </div>
       </section>
 
-
-
-      {/* 今週の試合 */}
       <section className="animate-fade-in-up animate-fade-in-up-delay-2">
         <div className="flex items-center justify-between mb-2.5">
           <h2 className="flex items-center gap-1.5 font-black text-[15px]">
@@ -110,7 +101,7 @@ export default function DashboardPage() {
             今後の試合
           </h2>
           <Link
-            href="/calendar"
+            href={teamLink("/calendar")}
             className="flex items-center gap-0.5 text-[11px] text-primary font-bold active:opacity-60"
           >
             すべて見る
@@ -126,11 +117,10 @@ export default function DashboardPage() {
               return (
                 <Link
                   key={game.id}
-                  href={`/games/detail?id=${game.id}`}
+                  href={teamLink(`/games/detail?id=${game.id}`)}
                   className="block bg-surface rounded-2xl border border-border p-3.5 active:scale-[0.98] transition-transform"
                 >
                   <div className="flex items-start gap-2.5 mb-2.5">
-                    {/* 日付ブロック */}
                     <div className="w-11 h-[52px] rounded-xl bg-gradient-hero text-white flex flex-col items-center justify-center shrink-0">
                       <span className="text-[9px] font-medium leading-tight">
                         {format(dateStart, "M月", { locale: ja })}
@@ -177,8 +167,6 @@ export default function DashboardPage() {
         )}
       </section>
 
-
-      {/* 最新のお知らせ */}
       <section className="animate-fade-in-up animate-fade-in-up-delay-3">
         <div className="flex items-center justify-between mb-2.5">
           <h2 className="flex items-center gap-1.5 font-black text-[15px]">
@@ -186,7 +174,7 @@ export default function DashboardPage() {
             最新のお知らせ
           </h2>
           <Link
-            href="/announcements"
+            href={teamLink("/announcements")}
             className="flex items-center gap-0.5 text-[11px] text-primary font-bold active:opacity-60"
           >
             すべて見る
@@ -199,7 +187,7 @@ export default function DashboardPage() {
             {announcements.slice(0, 3).map((ann) => (
               <Link
                 key={ann.id}
-                href={`/announcements/detail?id=${ann.id}`}
+                href={teamLink(`/announcements/detail?id=${ann.id}`)}
                 className="flex items-center gap-2.5 bg-surface rounded-xl border border-border p-3 active:scale-[0.98] transition-transform"
               >
                 <div className={cn(

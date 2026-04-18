@@ -2,21 +2,22 @@
 
 import { useState, useEffect } from "react";
 import { Settings, Shield, ChevronRight } from "lucide-react";
+import { useTeam } from "@/components/team/team-provider";
 
-/** 簡易的な管理設定ページ */
 export default function SettingsPage() {
+  const { team, teamSlug } = useTeam();
+  const storageKey = `${teamSlug}_admin`;
   const [isAdmin, setIsAdmin] = useState(false);
   const [passcode, setPasscode] = useState("");
 
-  // マウント時に状態を読み込む
   useEffect(() => {
-    setIsAdmin(localStorage.getItem("sk_admin") === "true");
-  }, []);
+    setIsAdmin(localStorage.getItem(storageKey) === "true");
+  }, [storageKey]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passcode === "1234") { // 後でSupabase環境変数などに変更
-      localStorage.setItem("sk_admin", "true");
+    if (team && passcode === team.adminPasscode) {
+      localStorage.setItem(storageKey, "true");
       setIsAdmin(true);
       alert("管理者モードになりました。画面下部に「予定登録」ボタンが表示されます！");
     } else {
@@ -25,7 +26,7 @@ export default function SettingsPage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("sk_admin");
+    localStorage.removeItem(storageKey);
     setIsAdmin(false);
     alert("管理者モードを終了しました。");
   };
@@ -49,39 +50,21 @@ export default function SettingsPage() {
               ✓ 現在、管理者としてロック解除されています。<br/>
               下部メニューから「予定登録」が可能です。
             </p>
-            <button 
-              onClick={handleLogout}
-              className="w-full py-3 bg-surface-variant text-muted text-[13px] font-bold rounded-xl active:bg-border transition-colors"
-            >
+            <button onClick={handleLogout} className="w-full py-3 bg-surface-variant text-muted text-[13px] font-bold rounded-xl active:bg-border transition-colors">
               管理者モードを終了する
             </button>
           </div>
         ) : (
           <form onSubmit={handleLogin} className="space-y-3">
-            <p className="text-[12px] text-muted leading-relaxed">
-              代表者パスコードを入力すると、予定の登録や削除が可能になります。
-            </p>
+            <p className="text-[12px] text-muted leading-relaxed">代表者パスコードを入力すると、予定の登録や削除が可能になります。</p>
             <div className="space-y-2">
-              <input 
-                type="password" 
-                placeholder="パスコード"
-                value={passcode}
-                onChange={(e) => setPasscode(e.target.value)}
-                className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm"
-              />
-              <button 
-                type="submit"
-                className="w-full py-3 bg-primary text-white font-bold text-[14px] rounded-xl active:scale-95 transition-all shadow-sm"
-              >
-                🔓 パスコードで解除
-              </button>
+              <input type="password" placeholder="パスコード" value={passcode} onChange={(e) => setPasscode(e.target.value)} className="w-full bg-background border border-border px-3 py-2.5 rounded-xl text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-sm" />
+              <button type="submit" className="w-full py-3 bg-primary text-white font-bold text-[14px] rounded-xl active:scale-95 transition-all shadow-sm">🔓 パスコードで解除</button>
             </div>
-            <p className="text-[10px] text-muted">※テスト用パスコード: 1234</p>
           </form>
         )}
       </div>
-      
-      {/* その他の設定項目リスト */}
+
       <div className="bg-surface rounded-2xl border border-border divide-y divide-border/50 shadow-sm overflow-hidden">
         <button className="w-full flex items-center justify-between px-4 py-3.5 active:bg-surface-variant transition-colors text-left">
           <span className="text-[13px] font-bold">アプリについて</span>
@@ -92,7 +75,6 @@ export default function SettingsPage() {
           <ChevronRight className="w-4 h-4 text-muted" />
         </button>
       </div>
-
     </div>
   );
 }

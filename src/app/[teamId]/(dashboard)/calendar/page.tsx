@@ -5,6 +5,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay,
 import { ja } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, List, CalendarDays, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTeam } from "@/components/team/team-provider";
 import { fetchGames } from "@/lib/supabase-data";
 import { GAME_TYPES } from "@/lib/constants";
 import type { GradeValue } from "@/lib/constants";
@@ -14,8 +15,8 @@ import { GameCard } from "@/components/games/game-card";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 
-/** カレンダーページ — Supabase接続版 */
 export default function CalendarPage() {
+  const { teamSlug } = useTeam();
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -26,25 +27,23 @@ export default function CalendarPage() {
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const games = await fetchGames();
+      const games = await fetchGames(teamSlug);
       setAllGames(games);
       setLoading(false);
     }
     load();
-  }, []);
+  }, [teamSlug]);
 
   const filteredGames = gradeFilter
     ? allGames.filter((g) => g.grades.includes(gradeFilter))
     : allGames;
 
-  // カレンダーの日付を生成
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const calStart = startOfWeek(monthStart, { weekStartsOn: 0 });
   const calEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
   const calendarDays = eachDayOfInterval({ start: calStart, end: calEnd });
 
-  // 日付ごとの試合をマッピング
   const gamesByDate = useMemo(() => {
     const map = new Map<string, Game[]>();
     filteredGames.forEach((game) => {
@@ -56,12 +55,10 @@ export default function CalendarPage() {
     return map;
   }, [filteredGames]);
 
-  // 選択日の試合
   const selectedGames = selectedDate
     ? gamesByDate.get(format(selectedDate, "yyyy-MM-dd")) || []
     : [];
 
-  // リスト表示用: 今後の試合
   const now = new Date();
   const upcomingGames = filteredGames
     .filter((g) => new Date(g.dateStart) >= now)
@@ -80,7 +77,6 @@ export default function CalendarPage() {
 
   return (
     <div className="px-4 py-4 space-y-4 pb-20">
-      {/* ヘッダー */}
       <div className="flex items-center justify-between">
         <h1 className="font-black text-lg flex items-center gap-1.5">
           <CalendarDays className="w-5 h-5 text-primary" />
@@ -108,50 +104,29 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* 学年フィルター */}
       <div className="-mx-4 px-4 overflow-x-auto no-scrollbar py-0.5">
         <GradeFilter value={gradeFilter} onChange={setGradeFilter} />
       </div>
 
       {viewMode === "calendar" ? (
         <>
-          {/* カレンダー表示 */}
           <div className="bg-surface rounded-2xl border border-border overflow-hidden shadow-sm">
-            {/* 月切り替え */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-              <button
-                onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                className="p-2 -ml-2 rounded-full active:bg-surface-variant transition-colors"
-              >
+              <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 -ml-2 rounded-full active:bg-surface-variant transition-colors">
                 <ChevronLeft className="w-5 h-5 text-muted" />
               </button>
-              <h2 className="font-black text-sm">
-                {format(currentMonth, "yyyy年 M月", { locale: ja })}
-              </h2>
-              <button
-                onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-                className="p-2 -mr-2 rounded-full active:bg-surface-variant transition-colors"
-              >
+              <h2 className="font-black text-sm">{format(currentMonth, "yyyy年 M月", { locale: ja })}</h2>
+              <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 -mr-2 rounded-full active:bg-surface-variant transition-colors">
                 <ChevronRight className="w-5 h-5 text-muted" />
               </button>
             </div>
 
-            {/* 曜日ヘッダー */}
             <div className="grid grid-cols-7 border-b border-border">
               {WEEKDAYS.map((day, i) => (
-                <div
-                  key={day}
-                  className={cn(
-                    "py-1.5 text-center text-[10px] font-bold bg-surface-variant/30",
-                    i === 0 ? "text-red-500" : i === 6 ? "text-blue-500" : "text-muted"
-                  )}
-                >
-                  {day}
-                </div>
+                <div key={day} className={cn("py-1.5 text-center text-[10px] font-bold bg-surface-variant/30", i === 0 ? "text-red-500" : i === 6 ? "text-blue-500" : "text-muted")}>{day}</div>
               ))}
             </div>
 
-            {/* カレンダー本体 */}
             <div className="grid grid-cols-7">
               {calendarDays.map((day) => {
                 const dayKey = format(day, "yyyy-MM-dd");
@@ -161,41 +136,27 @@ export default function CalendarPage() {
                 const dayOfWeek = getDay(day);
 
                 return (
-                  <button
-                    key={dayKey}
-                    onClick={() => setSelectedDate(isSelected ? null : day)}
-                    className={cn(
-                      "relative min-h-[48px] p-1 border-b border-r border-border/30 transition-colors touch-active",
+                  <button key={dayKey} onClick={() => setSelectedDate(isSelected ? null : day)}
+                    className={cn("relative min-h-[48px] p-1 border-b border-r border-border/30 transition-colors touch-active",
                       !isCurrentMonth && "opacity-30 bg-surface-variant/10",
                       isSelected && "bg-primary-50 ring-1 ring-inset ring-primary/20",
                       isToday(day) && "bg-primary-50/50",
                       "active:bg-surface-variant"
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold mx-auto",
-                        isToday(day) && "bg-primary text-white shadow-sm",
-                        !isToday(day) && dayOfWeek === 0 && "text-red-500",
-                        !isToday(day) && dayOfWeek === 6 && "text-blue-500",
-                        !isToday(day) && dayOfWeek !== 0 && dayOfWeek !== 6 && "text-foreground"
-                      )}
-                    >
-                      {format(day, "d")}
-                    </span>
-                    {/* 試合ドット */}
+                    )}>
+                    <span className={cn("inline-flex items-center justify-center w-5 h-5 rounded-full text-[11px] font-bold mx-auto",
+                      isToday(day) && "bg-primary text-white shadow-sm",
+                      !isToday(day) && dayOfWeek === 0 && "text-red-500",
+                      !isToday(day) && dayOfWeek === 6 && "text-blue-500",
+                      !isToday(day) && dayOfWeek !== 0 && dayOfWeek !== 6 && "text-foreground"
+                    )}>{format(day, "d")}</span>
                     {dayGames.length > 0 && (
                       <div className="flex flex-wrap justify-center gap-0.5 mt-1 px-0.5">
                         {dayGames.map((g) => (
-                          <span
-                            key={g.id}
-                            className={cn(
-                              "w-1.5 h-1.5 rounded-full",
-                              g.type === "official" && "bg-official",
-                              g.type === "practice" && "bg-practice",
-                              g.type === "other" && "bg-other"
-                            )}
-                          />
+                          <span key={g.id} className={cn("w-1.5 h-1.5 rounded-full",
+                            g.type === "official" && "bg-official",
+                            g.type === "practice" && "bg-practice",
+                            g.type === "other" && "bg-other"
+                          )} />
                         ))}
                       </div>
                     )}
@@ -205,7 +166,6 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          {/* 色の凡例 */}
           <div className="flex flex-wrap justify-center gap-2 text-[10px] text-muted">
             {GAME_TYPES.map((t) => (
               <div key={t.value} className="flex items-center gap-1 bg-surface py-0.5 px-2 rounded-full border border-border">
@@ -215,7 +175,6 @@ export default function CalendarPage() {
             ))}
           </div>
 
-          {/* 選択日の試合 */}
           {selectedDate && (
             <div className="space-y-2.5 animate-fade-in-up">
               <h3 className="font-bold text-xs text-muted flex items-center gap-1 before:content-[''] before:block before:w-1 before:h-3 before:bg-primary before:rounded-full">
@@ -223,7 +182,7 @@ export default function CalendarPage() {
               </h3>
               {selectedGames.length > 0 ? (
                 selectedGames.map((game, i) => (
-                  <GameCard key={game.id} game={game} index={i} />
+                  <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} />
                 ))
               ) : (
                 <div className="bg-surface rounded-xl border border-border p-4 text-center">
@@ -234,11 +193,10 @@ export default function CalendarPage() {
           )}
         </>
       ) : (
-        /* リスト表示 */
         <div className="space-y-2.5">
           {upcomingGames.length > 0 ? (
             upcomingGames.map((game, i) => (
-              <GameCard key={game.id} game={game} index={i} />
+              <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} />
             ))
           ) : (
             <div className="bg-surface rounded-2xl border border-border p-8 text-center">
