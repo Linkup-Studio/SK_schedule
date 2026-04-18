@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Save, Calendar, MapPin, Users, FileText, Clock, Package, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GAME_TYPES, GRADES } from "@/lib/constants";
+import { useTeam } from "@/components/team/team-provider";
+import { useTeamLink } from "@/hooks/use-team-link";
 import { fetchGameById, updateGame } from "@/lib/supabase-data";
 import type { GameType, GradeValue } from "@/lib/constants";
 
@@ -13,6 +15,9 @@ function EditGameContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const gameId = searchParams.get("id") ?? "";
+  const { teamSlug } = useTeam();
+  const teamLink = useTeamLink();
+  const storageKey = `${teamSlug}_admin`;
 
   const [type, setType] = useState<GameType>("practice");
   const [selectedGrades, setSelectedGrades] = useState<GradeValue[]>([]);
@@ -33,27 +38,25 @@ function EditGameContent() {
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    const adminState = localStorage.getItem("sk_admin") === "true";
-    if (!adminState) { router.replace("/calendar"); return; }
+    const adminState = localStorage.getItem(storageKey) === "true";
+    if (!adminState) { router.replace(teamLink("/calendar")); return; }
     setIsAuthorized(true);
 
     if (!gameId) return;
     async function loadGame() {
       setIsLoading(true);
       const game = await fetchGameById(gameId);
-      if (!game) { alert("試合が見つかりません"); router.push("/calendar"); return; }
+      if (!game) { alert("試合が見つかりません"); router.push(teamLink("/calendar")); return; }
 
-      // 安全な日付フォーマット関数（無効な日付の場合は空文字を返す）
       const formatLocalInput = (dateStr: string | null | undefined, type: 'datetime' | 'date' = 'datetime') => {
         if (!dateStr) return "";
         const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return ""; // 不正な日付をガード
+        if (isNaN(d.getTime())) return "";
         const pad = (n: number) => n.toString().padStart(2, '0');
         const YYYY = d.getFullYear();
         const MM = pad(d.getMonth() + 1);
         const DD = pad(d.getDate());
         if (type === 'date') return `${YYYY}-${MM}-${DD}`;
-        
         const hh = pad(d.getHours());
         const mm = pad(d.getMinutes());
         return `${YYYY}-${MM}-${DD}T${hh}:${mm}`;
@@ -75,22 +78,16 @@ function EditGameContent() {
       setIsLoading(false);
     }
     loadGame();
-  }, [router, gameId]);
+  }, [router, gameId, storageKey, teamLink]);
 
   if (!isAuthorized) return null;
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-[60vh]">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-      </div>
-    );
+    return (<div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>);
   }
 
   const toggleGrade = (grade: GradeValue) => {
-    setSelectedGrades((prev) =>
-      prev.includes(grade) ? prev.filter((g) => g !== grade) : [...prev, grade]
-    );
+    setSelectedGrades((prev) => prev.includes(grade) ? prev.filter((g) => g !== grade) : [...prev, grade]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -102,9 +99,7 @@ function EditGameContent() {
 
     setIsSaving(true);
     const result = await updateGame(gameId, {
-      title: title.trim(),
-      type,
-      grades: selectedGrades,
+      title: title.trim(), type, grades: selectedGrades,
       venueName: venueName.trim(),
       venueAddress: venueAddress.trim() || undefined,
       meetingPlace: meetingPlace.trim() || undefined,
@@ -120,7 +115,7 @@ function EditGameContent() {
 
     if (result) {
       alert("✅ 更新しました！");
-      router.push(`/games/detail?id=${gameId}`);
+      router.push(teamLink(`/games/detail?id=${gameId}`));
     } else {
       alert("❌ 更新に失敗しました。");
     }
@@ -128,32 +123,21 @@ function EditGameContent() {
 
   return (
     <div className="px-4 py-4 space-y-4 pb-24">
-      <Link href={`/games/detail?id=${gameId}`} className="inline-flex items-center gap-1 text-[13px] text-muted active:text-primary transition-colors py-1 pr-2">
+      <Link href={teamLink(`/games/detail?id=${gameId}`)} className="inline-flex items-center gap-1 text-[13px] text-muted active:text-primary transition-colors py-1 pr-2">
         <ArrowLeft className="w-4 h-4" />戻る
       </Link>
-
-      <h1 className="font-black text-lg flex items-center gap-1.5">
-        <Calendar className="w-5 h-5 text-primary" />
-        予定を編集
-      </h1>
+      <h1 className="font-black text-lg flex items-center gap-1.5"><Calendar className="w-5 h-5 text-primary" />予定を編集</h1>
 
       <form onSubmit={handleSubmit} className="space-y-3">
-        {/* 種別 */}
         <div className="bg-surface rounded-2xl border border-border p-3.5 space-y-3 shadow-sm">
-          <label className="flex items-center gap-1.5 text-[11px] font-bold text-muted">
-            <FileText className="w-4 h-4 text-primary" />種別 <span className="text-error">*</span>
-          </label>
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-muted"><FileText className="w-4 h-4 text-primary" />種別 <span className="text-error">*</span></label>
           <div className="grid grid-cols-2 gap-2">
             {GAME_TYPES.map((t) => (
-              <button key={t.value} type="button" onClick={() => setType(t.value)}
-                className={cn("px-3 py-2.5 rounded-xl text-[13px] font-bold border-2 transition-all active:scale-95",
-                  type === t.value ? `badge-${t.color} border-current shadow-sm` : "border-border text-muted"
-                )}>{t.label}</button>
+              <button key={t.value} type="button" onClick={() => setType(t.value)} className={cn("px-3 py-2.5 rounded-xl text-[13px] font-bold border-2 transition-all active:scale-95", type === t.value ? `badge-${t.color} border-current shadow-sm` : "border-border text-muted")}>{t.label}</button>
             ))}
           </div>
         </div>
 
-        {/* タイトル + 対戦相手 */}
         <div className="bg-surface rounded-2xl border border-border p-3.5 space-y-3.5 shadow-sm">
           <FormField icon={<FileText className="w-4 h-4 text-primary" />} label="タイトル" required>
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例: 春季大会 1回戦" className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-input" />
@@ -163,22 +147,15 @@ function EditGameContent() {
           </FormField>
         </div>
 
-        {/* 対象学年 */}
         <div className="bg-surface rounded-2xl border border-border p-3.5 space-y-3 shadow-sm">
-          <label className="flex items-center gap-1.5 text-[11px] font-bold text-muted">
-            <Users className="w-4 h-4 text-primary" />対象学年 <span className="text-error">*</span>
-          </label>
+          <label className="flex items-center gap-1.5 text-[11px] font-bold text-muted"><Users className="w-4 h-4 text-primary" />対象学年 <span className="text-error">*</span></label>
           <div className="flex gap-2">
             {GRADES.map((g) => (
-              <button key={g.value} type="button" onClick={() => toggleGrade(g.value)}
-                className={cn("flex-1 px-2 py-2.5 rounded-xl text-[13px] font-bold border-2 transition-all active:scale-95",
-                  selectedGrades.includes(g.value) ? "bg-primary text-white border-primary shadow-sm" : "border-border text-muted bg-surface"
-                )}>{g.label}</button>
+              <button key={g.value} type="button" onClick={() => toggleGrade(g.value)} className={cn("flex-1 px-2 py-2.5 rounded-xl text-[13px] font-bold border-2 transition-all active:scale-95", selectedGrades.includes(g.value) ? "bg-primary text-white border-primary shadow-sm" : "border-border text-muted bg-surface")}>{g.label}</button>
             ))}
           </div>
         </div>
 
-        {/* 日時 */}
         <div className="bg-surface rounded-2xl border border-border p-3.5 space-y-3.5 shadow-sm">
           <div className="grid grid-cols-2 gap-3">
             <FormField icon={<Calendar className="w-4 h-4 text-primary" />} label="開始日時" required>
@@ -198,7 +175,6 @@ function EditGameContent() {
           </div>
         </div>
 
-        {/* 会場 */}
         <div className="bg-surface rounded-2xl border border-border p-3.5 space-y-3.5 shadow-sm">
           <FormField icon={<MapPin className="w-4 h-4 text-error" />} label="会場名" required>
             <input type="text" value={venueName} onChange={(e) => setVenueName(e.target.value)} placeholder="例: 市民球場" className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-input" />
@@ -211,7 +187,6 @@ function EditGameContent() {
           </FormField>
         </div>
 
-        {/* 持ち物・備考 */}
         <div className="bg-surface rounded-2xl border border-border p-3.5 space-y-3.5 shadow-sm">
           <FormField icon={<Package className="w-4 h-4 text-info" />} label="持ち物・準備物">
             <textarea rows={3} value={items} onChange={(e) => setItems(e.target.value)} placeholder="例: ユニフォーム一式、スパイク..." className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none shadow-input leading-relaxed" />
@@ -222,10 +197,7 @@ function EditGameContent() {
         </div>
 
         <div className="pt-2">
-          <button type="submit" disabled={isSaving}
-            className={cn("w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[15px] transition-all",
-              isSaving ? "bg-primary/50 text-white cursor-not-allowed" : "bg-primary text-white active:bg-primary-light shadow-lg active:scale-[0.98]"
-            )}>
+          <button type="submit" disabled={isSaving} className={cn("w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[15px] transition-all", isSaving ? "bg-primary/50 text-white cursor-not-allowed" : "bg-primary text-white active:bg-primary-light shadow-lg active:scale-[0.98]")}>
             {isSaving ? (<><Loader2 className="w-5 h-5 animate-spin" />更新中...</>) : (<><Save className="w-5 h-5" />変更を保存</>)}
           </button>
         </div>
@@ -235,14 +207,7 @@ function EditGameContent() {
 }
 
 function FormField({ icon, label, required, children }: { icon: React.ReactNode; label: string; required?: boolean; children: React.ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <label className="flex items-center gap-1.5 text-[11px] font-bold text-muted pl-0.5">
-        {icon}{label}{required && <span className="text-error">*</span>}
-      </label>
-      {children}
-    </div>
-  );
+  return (<div className="space-y-1.5"><label className="flex items-center gap-1.5 text-[11px] font-bold text-muted pl-0.5">{icon}{label}{required && <span className="text-error">*</span>}</label>{children}</div>);
 }
 
 export default function EditGamePage() {

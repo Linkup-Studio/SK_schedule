@@ -17,8 +17,7 @@ function getRelativeDate(dateStr: string): string {
   return "";
 }
 
-/** 試合カードコンポーネント — モバイル最適化 */
-export function GameCard({ game, index = 0, attendanceSummary }: { game: Game; index?: number; attendanceSummary?: AttendanceSummary }) {
+export function GameCard({ game, index = 0, attendanceSummary, teamSlug }: { game: Game; index?: number; attendanceSummary?: AttendanceSummary; teamSlug: string }) {
   const summary = attendanceSummary ?? { attend: 0, absent: 0, undecided: 0, noAnswer: 0, total: 0 };
   const dateStart = new Date(game.dateStart);
   const relative = getRelativeDate(game.dateStart);
@@ -27,7 +26,7 @@ export function GameCard({ game, index = 0, attendanceSummary }: { game: Game; i
 
   return (
     <Link
-      href={`/games/detail?id=${game.id}`}
+      href={`/${teamSlug}/games/detail?id=${game.id}`}
       className={cn(
         "block bg-surface rounded-2xl border border-border p-3.5 shadow-sm touch-active",
         "animate-fade-in-up focus:ring-2 focus:ring-primary/20 outline-none",
@@ -37,70 +36,41 @@ export function GameCard({ game, index = 0, attendanceSummary }: { game: Game; i
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex items-center gap-2.5 flex-1 min-w-0">
-          {/* 日付ブロック */}
           <div className={cn(
             "w-11 h-[52px] rounded-xl flex flex-col items-center justify-center text-center shrink-0",
             isUrgent ? "bg-gradient-hero text-white shadow-sm" : "bg-primary-50 text-primary"
           )}>
-            <span className="text-[9px] font-medium leading-none">
-              {format(dateStart, "M月", { locale: ja })}
-            </span>
-            <span className="text-lg font-black leading-tight my-0.5">
-              {format(dateStart, "d")}
-            </span>
-            <span className="text-[9px] font-medium leading-none">
-              {format(dateStart, "E", { locale: ja })}
-            </span>
+            <span className="text-[9px] font-medium leading-none">{format(dateStart, "M月", { locale: ja })}</span>
+            <span className="text-lg font-black leading-tight my-0.5">{format(dateStart, "d")}</span>
+            <span className="text-[9px] font-medium leading-none">{format(dateStart, "E", { locale: ja })}</span>
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
               <GameTypeBadge type={game.type} />
-              {game.grades.map((g) => (
-                <GradeBadge key={g} grade={g} />
-              ))}
+              {game.grades.map((g) => (<GradeBadge key={g} grade={g} />))}
               {relative && (
-                <span className={cn(
-                  "text-[9px] font-bold px-1.5 py-0.5 rounded-md ml-auto shrink-0",
-                  isUrgent ? "bg-error/10 text-error" : "bg-primary-50 text-primary"
-                )}>
-                  {relative}
-                </span>
+                <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-md ml-auto shrink-0", isUrgent ? "bg-error/10 text-error" : "bg-primary-50 text-primary")}>{relative}</span>
               )}
             </div>
             <h3 className="font-bold text-[14px] text-foreground truncate pr-1">{game.title}</h3>
-            {game.opponent && (
-              <p className="text-[11px] text-muted truncate pr-1">vs {game.opponent}</p>
-            )}
+            {game.opponent && (<p className="text-[11px] text-muted truncate pr-1">vs {game.opponent}</p>)}
           </div>
         </div>
         <ChevronRight className="w-4 h-4 text-muted shrink-0 mt-3" />
       </div>
 
       <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 text-[11px] text-muted mb-2">
-        <span className="flex items-center gap-1">
-          <MapPin className="w-3 h-3" />
-          <span className="truncate max-w-[120px]">{game.venueName}</span>
-        </span>
-        <span className="flex items-center gap-1 shrink-0">
-          <Clock className="w-3 h-3" />
-          {format(dateStart, "HH:mm")}
-          {game.meetingTime && ` (集合 ${game.meetingTime})`}
-        </span>
+        <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /><span className="truncate max-w-[120px]">{game.venueName}</span></span>
+        <span className="flex items-center gap-1 shrink-0"><Clock className="w-3 h-3" />{format(dateStart, "HH:mm")}{game.meetingTime && ` (集合 ${game.meetingTime})`}</span>
       </div>
 
       {!isPast && (
         <div className="pt-2.5 border-t border-border/50">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="flex items-center gap-1 text-[10px] font-bold text-muted uppercase tracking-wider">
-              <Users className="w-3.5 h-3.5" />
-              出欠
-            </span>
+            <span className="flex items-center gap-1 text-[10px] font-bold text-muted uppercase tracking-wider"><Users className="w-3.5 h-3.5" />出欠</span>
             {summary.noAnswer > 0 && (
-              <span className="flex items-center gap-1 text-[10px] text-warning font-bold bg-warning/10 px-1.5 py-0.5 rounded">
-                <AlertTriangle className="w-2.5 h-2.5" />
-                未回答 {summary.noAnswer}
-              </span>
+              <span className="flex items-center gap-1 text-[10px] text-warning font-bold bg-warning/10 px-1.5 py-0.5 rounded"><AlertTriangle className="w-2.5 h-2.5" />未回答 {summary.noAnswer}</span>
             )}
           </div>
           <AttendanceSummaryBar {...summary} />

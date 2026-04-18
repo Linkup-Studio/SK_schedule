@@ -4,11 +4,15 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { TEAM_NAME } from "@/lib/constants";
+import { useTeam } from "@/components/team/team-provider";
+import { useTeamLink } from "@/hooks/use-team-link";
 import { Home, Calendar, Megaphone, Plus } from "lucide-react";
 
-/** モバイル専用ヘッダー — ロゴ5回タップで管理者モード切替 */
 export function Header() {
+  const { team, teamSlug } = useTeam();
+  const teamLink = useTeamLink();
+  const storageKey = `${teamSlug}_admin`;
+
   const [tapCount, setTapCount] = useState(0);
   const [showDialog, setShowDialog] = useState(false);
   const [passcode, setPasscode] = useState("");
@@ -16,14 +20,13 @@ export function Header() {
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    setIsAdmin(localStorage.getItem("sk_admin") === "true");
-  }, []);
+    setIsAdmin(localStorage.getItem(storageKey) === "true");
+  }, [storageKey]);
 
   const handleLogoTap = useCallback(() => {
     const next = tapCount + 1;
     setTapCount(next);
 
-    // タイマーリセット（2秒以内に5回タップ必要）
     if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
     tapTimerRef.current = setTimeout(() => setTapCount(0), 2000);
 
@@ -32,23 +35,21 @@ export function Header() {
       if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
 
       if (isAdmin) {
-        // 管理者モード終了
-        localStorage.removeItem("sk_admin");
+        localStorage.removeItem(storageKey);
         setIsAdmin(false);
         window.dispatchEvent(new Event("storage"));
         alert("管理者モードを終了しました。");
       } else {
-        // パスコード入力ダイアログ表示
         setShowDialog(true);
         setPasscode("");
       }
     }
-  }, [tapCount, isAdmin]);
+  }, [tapCount, isAdmin, storageKey]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (passcode === "1234") {
-      localStorage.setItem("sk_admin", "true");
+    if (team && passcode === team.adminPasscode) {
+      localStorage.setItem(storageKey, "true");
       setIsAdmin(true);
       setShowDialog(false);
       window.dispatchEvent(new Event("storage"));
@@ -57,6 +58,9 @@ export function Header() {
       alert("パスコードが違います");
     }
   };
+
+  const teamShort = team?.shortName ?? teamSlug.toUpperCase();
+  const teamName = team?.name ?? teamSlug;
 
   return (
     <>
@@ -71,15 +75,14 @@ export function Header() {
               "w-7 h-7 rounded-lg flex items-center justify-center transition-all",
               isAdmin ? "bg-gradient-to-br from-amber-500 to-orange-500" : "bg-gradient-hero"
             )}>
-              <span className="text-white font-black text-[11px]">SK</span>
+              <span className="text-white font-black text-[11px]">{teamShort}</span>
             </div>
-            <span className="font-black text-sm text-primary">{TEAM_NAME}</span>
-            {isAdmin && <Link href="/members" className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200 active:scale-95 transition-transform">管理者</Link>}
+            <span className="font-black text-sm text-primary">{teamName}</span>
+            {isAdmin && <Link href={teamLink("/members")} className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200 active:scale-95 transition-transform">管理者</Link>}
           </button>
         </div>
       </header>
 
-      {/* パスコード入力ダイアログ */}
       {showDialog && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in-up">
           <div className="bg-white rounded-2xl p-5 mx-6 w-full max-w-sm shadow-2xl">
@@ -117,39 +120,39 @@ export function Header() {
   );
 }
 
-/** 
- * ボトムナビ（管理設定タブなし）
- * 管理者モードのときだけ「予定登録」が表示される
- */
 export function BottomNav() {
   const pathname = usePathname();
+  const { teamSlug } = useTeam();
+  const teamLink = useTeamLink();
+  const storageKey = `${teamSlug}_admin`;
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const checkAdmin = () => {
-      setIsAdmin(localStorage.getItem("sk_admin") === "true");
+      setIsAdmin(localStorage.getItem(storageKey) === "true");
     };
     checkAdmin();
     window.addEventListener("storage", checkAdmin);
     return () => window.removeEventListener("storage", checkAdmin);
-  }, [pathname]);
+  }, [pathname, storageKey]);
 
+  const prefix = `/${teamSlug}`;
   const tabs = [
-    { href: "/dashboard", icon: Home, label: "ホーム" },
-    { href: "/calendar", icon: Calendar, label: "予定" },
-    { href: "/announcements", icon: Megaphone, label: "連絡" },
-    ...(isAdmin ? [{ href: "/games/new", icon: Plus, label: "予定登録", isAction: true }] : []),
+    { href: teamLink("/dashboard"), icon: Home, label: "ホーム" },
+    { href: teamLink("/calendar"), icon: Calendar, label: "予定" },
+    { href: teamLink("/announcements"), icon: Megaphone, label: "連絡" },
+    ...(isAdmin ? [{ href: teamLink("/games/new"), icon: Plus, label: "予定登録", isAction: true }] : []),
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 glass-card border-t border-border/50 safe-bottom">
       <div className="flex items-end justify-around px-1 pt-1 pb-1">
         {tabs.map((tab) => {
-          const isActive = tab.href === "/dashboard"
-            ? pathname === "/dashboard"
-            : !tab.isAction && pathname.startsWith(tab.href);
+          const isActive = tab.href === `${prefix}/dashboard`
+            ? pathname === `${prefix}/dashboard`
+            : !("isAction" in tab) && pathname.startsWith(tab.href);
 
-          if (tab.isAction) {
+          if ("isAction" in tab && tab.isAction) {
             return (
               <Link
                 key={tab.href}

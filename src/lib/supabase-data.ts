@@ -1,16 +1,7 @@
-/**
- * Supabase データアクセス関数
- * モックデータの代わりにSupabaseからデータを取得・保存する
- */
 import { supabase } from "./supabase";
 import type { Game, Attendance, Announcement, AttendanceSummary, Player } from "./types";
 import type { GradeValue, GameType, AttendanceStatusValue } from "./constants";
 
-// =============================================
-// 変換ヘルパー（DBの行 → アプリの型）
-// =============================================
-
-/** DB行をアプリ用Game型に変換 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toGame(row: Record<string, any>): Game {
   return {
@@ -36,7 +27,6 @@ function toGame(row: Record<string, any>): Game {
   };
 }
 
-/** DB行をアプリ用Attendance型に変換 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toAttendance(row: Record<string, any>): Attendance {
   return {
@@ -51,7 +41,6 @@ function toAttendance(row: Record<string, any>): Attendance {
   };
 }
 
-/** DB行をアプリ用Announcement型に変換 */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toAnnouncement(row: Record<string, any>): Announcement {
   return {
@@ -66,15 +55,48 @@ function toAnnouncement(row: Record<string, any>): Announcement {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toPlayer(row: Record<string, any>): Player {
+  return {
+    id: row.id,
+    name: row.name,
+    grade: row.grade as GradeValue,
+    createdAt: row.created_at,
+  };
+}
+
+// =============================================
+// チームID解決
+// =============================================
+
+let teamIdCache: Record<string, string> = {};
+
+export async function resolveTeamId(teamSlug: string): Promise<string | null> {
+  if (teamIdCache[teamSlug]) return teamIdCache[teamSlug];
+
+  const { data, error } = await supabase
+    .from("teams")
+    .select("id")
+    .eq("slug", teamSlug)
+    .single();
+
+  if (error || !data) return null;
+  teamIdCache[teamSlug] = data.id;
+  return data.id;
+}
+
 // =============================================
 // 試合（Games）
 // =============================================
 
-/** 全試合を取得 */
-export async function fetchGames(): Promise<Game[]> {
+export async function fetchGames(teamSlug: string): Promise<Game[]> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return [];
+
   const { data, error } = await supabase
     .from("games")
     .select("*")
+    .eq("team_id", teamId)
     .order("date_start", { ascending: true });
 
   if (error) {
@@ -84,20 +106,21 @@ export async function fetchGames(): Promise<Game[]> {
   return (data ?? []).map(toGame);
 }
 
-/** 学年でフィルターした試合を取得 */
-export async function fetchFilteredGames(gradeFilter: GradeValue | null): Promise<Game[]> {
-  const games = await fetchGames();
+export async function fetchFilteredGames(teamSlug: string, gradeFilter: GradeValue | null): Promise<Game[]> {
+  const games = await fetchGames(teamSlug);
   if (!gradeFilter) return games;
   return games.filter((g) => g.grades.includes(gradeFilter));
 }
 
-/** 今後の試合を取得 */
-export async function fetchUpcomingGames(): Promise<Game[]> {
-  const now = new Date();
+export async function fetchUpcomingGames(teamSlug: string): Promise<Game[]> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return [];
 
+  const now = new Date();
   const { data, error } = await supabase
     .from("games")
     .select("*")
+    .eq("team_id", teamId)
     .gte("date_start", now.toISOString())
     .order("date_start", { ascending: true });
 
@@ -108,7 +131,6 @@ export async function fetchUpcomingGames(): Promise<Game[]> {
   return (data ?? []).map(toGame);
 }
 
-/** 試合を1件取得 */
 export async function fetchGameById(id: string): Promise<Game | null> {
   const { data, error } = await supabase
     .from("games")
@@ -123,8 +145,7 @@ export async function fetchGameById(id: string): Promise<Game | null> {
   return data ? toGame(data) : null;
 }
 
-/** 試合を新規登録 */
-export async function createGame(input: {
+export async function createGame(teamSlug: string, input: {
   title: string;
   type: string;
   grades: number[];
@@ -139,9 +160,13 @@ export async function createGame(input: {
   items?: string;
   notes?: string;
 }): Promise<Game | null> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return null;
+
   const { data, error } = await supabase
     .from("games")
     .insert({
+      team_id: teamId,
       title: input.title,
       type: input.type,
       grades: input.grades,
@@ -166,7 +191,6 @@ export async function createGame(input: {
   return data ? toGame(data) : null;
 }
 
-/** 試合を削除 */
 export async function deleteGame(id: string): Promise<boolean> {
   const { error } = await supabase.from("games").delete().eq("id", id);
   if (error) {
@@ -176,7 +200,6 @@ export async function deleteGame(id: string): Promise<boolean> {
   return true;
 }
 
-/** 試合を更新 */
 export async function updateGame(id: string, input: {
   title: string;
   type: string;
@@ -224,7 +247,6 @@ export async function updateGame(id: string, input: {
 // 出欠（Attendances）
 // =============================================
 
-/** 指定した試合の出欠を全件取得 */
 export async function fetchAttendancesByGame(gameId: string): Promise<Attendance[]> {
   const { data, error } = await supabase
     .from("attendances")
@@ -239,17 +261,20 @@ export async function fetchAttendancesByGame(gameId: string): Promise<Attendance
   return (data ?? []).map(toAttendance);
 }
 
-/** 出欠を送信（UPSERTで同名は上書き） */
-export async function upsertAttendance(input: {
+export async function upsertAttendance(teamSlug: string, input: {
   gameId: string;
   playerName: string;
   status: "attend" | "absent" | "undecided";
   reason?: string;
 }): Promise<Attendance | null> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return null;
+
   const { data, error } = await supabase
     .from("attendances")
     .upsert(
       {
+        team_id: teamId,
         game_id: input.gameId,
         player_name: input.playerName,
         status: input.status,
@@ -267,7 +292,6 @@ export async function upsertAttendance(input: {
   return data ? toAttendance(data) : null;
 }
 
-/** 出欠を削除 */
 export async function deleteAttendance(id: string): Promise<boolean> {
   const { error } = await supabase.from("attendances").delete().eq("id", id);
   if (error) {
@@ -276,16 +300,16 @@ export async function deleteAttendance(id: string): Promise<boolean> {
   }
   return true;
 }
-export async function fetchAttendanceSummary(gameId: string, grades?: GradeValue[]): Promise<AttendanceSummary> {
+
+export async function fetchAttendanceSummary(gameId: string, teamSlug: string, grades?: GradeValue[]): Promise<AttendanceSummary> {
   const attendances = await fetchAttendancesByGame(gameId);
   const attend = attendances.filter((a) => a.status === "attend").length;
   const absent = attendances.filter((a) => a.status === "absent").length;
   const undecided = 0;
 
-  // 対象学年の登録人数から未回答を計算
   let totalPlayers = 0;
   if (typeof window !== "undefined" && grades && grades.length > 0) {
-    const saved = localStorage.getItem("sk_player_counts");
+    const saved = localStorage.getItem(`${teamSlug}_player_counts`);
     if (saved) {
       const counts = JSON.parse(saved) as Record<string, number>;
       totalPlayers = grades.reduce((sum, g) => sum + (counts[String(g)] ?? 0), 0);
@@ -301,11 +325,14 @@ export async function fetchAttendanceSummary(gameId: string, grades?: GradeValue
 // お知らせ（Announcements）
 // =============================================
 
-/** お知らせ全件取得（ピン留め優先、新しい順） */
-export async function fetchAnnouncements(): Promise<Announcement[]> {
+export async function fetchAnnouncements(teamSlug: string): Promise<Announcement[]> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return [];
+
   const { data, error } = await supabase
     .from("announcements")
     .select("*")
+    .eq("team_id", teamId)
     .order("is_pinned", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -316,14 +343,17 @@ export async function fetchAnnouncements(): Promise<Announcement[]> {
   return (data ?? []).map(toAnnouncement);
 }
 
-/** 3週間経過したお知らせを自動削除（管理者のみ実行） */
-export async function cleanupOldAnnouncements(): Promise<number> {
+export async function cleanupOldAnnouncements(teamSlug: string): Promise<number> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return 0;
+
   const threeWeeksAgo = new Date();
   threeWeeksAgo.setDate(threeWeeksAgo.getDate() - 21);
 
   const { data, error } = await supabase
     .from("announcements")
     .delete()
+    .eq("team_id", teamId)
     .eq("is_pinned", false)
     .lt("created_at", threeWeeksAgo.toISOString())
     .select("id");
@@ -335,7 +365,6 @@ export async function cleanupOldAnnouncements(): Promise<number> {
   return data?.length ?? 0;
 }
 
-/** お知らせを1件取得 */
 export async function fetchAnnouncementById(id: string): Promise<Announcement | null> {
   const { data, error } = await supabase
     .from("announcements")
@@ -350,16 +379,19 @@ export async function fetchAnnouncementById(id: string): Promise<Announcement | 
   return data ? toAnnouncement(data) : null;
 }
 
-/** お知らせを新規投稿 */
-export async function createAnnouncement(input: {
+export async function createAnnouncement(teamSlug: string, input: {
   title: string;
   body: string;
   targetGrades: number[];
   isPinned?: boolean;
 }): Promise<Announcement | null> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return null;
+
   const { data, error } = await supabase
     .from("announcements")
     .insert({
+      team_id: teamId,
       title: input.title,
       body: input.body,
       target_grades: input.targetGrades,
@@ -375,7 +407,6 @@ export async function createAnnouncement(input: {
   return data ? toAnnouncement(data) : null;
 }
 
-/** お知らせを削除 */
 export async function deleteAnnouncement(id: string): Promise<boolean> {
   const { error } = await supabase.from("announcements").delete().eq("id", id);
   if (error) {
@@ -385,7 +416,6 @@ export async function deleteAnnouncement(id: string): Promise<boolean> {
   return true;
 }
 
-/** お知らせを更新 */
 export async function updateAnnouncement(id: string, input: {
   title: string;
   body: string;
@@ -415,21 +445,14 @@ export async function updateAnnouncement(id: string, input: {
 // 選手名簿 CRUD
 // =============================================
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toPlayer(row: Record<string, any>): Player {
-  return {
-    id: row.id,
-    name: row.name,
-    grade: row.grade as GradeValue,
-    createdAt: row.created_at,
-  };
-}
+export async function fetchPlayers(teamSlug: string): Promise<Player[]> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return [];
 
-/** 選手一覧取得 */
-export async function fetchPlayers(): Promise<Player[]> {
   const { data, error } = await supabase
     .from("players")
     .select("*")
+    .eq("team_id", teamId)
     .order("grade", { ascending: true })
     .order("name", { ascending: true });
 
@@ -440,11 +463,13 @@ export async function fetchPlayers(): Promise<Player[]> {
   return (data ?? []).map(toPlayer);
 }
 
-/** 選手追加 */
-export async function createPlayer(input: { name: string; grade: GradeValue }): Promise<Player | null> {
+export async function createPlayer(teamSlug: string, input: { name: string; grade: GradeValue }): Promise<Player | null> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return null;
+
   const { data, error } = await supabase
     .from("players")
-    .insert({ name: input.name, grade: input.grade })
+    .insert({ team_id: teamId, name: input.name, grade: input.grade })
     .select()
     .single();
 
@@ -455,7 +480,6 @@ export async function createPlayer(input: { name: string; grade: GradeValue }): 
   return data ? toPlayer(data) : null;
 }
 
-/** 選手の学年更新 */
 export async function updatePlayerGrade(id: string, grade: GradeValue): Promise<boolean> {
   const { error } = await supabase
     .from("players")
@@ -469,7 +493,6 @@ export async function updatePlayerGrade(id: string, grade: GradeValue): Promise<
   return true;
 }
 
-/** 選手削除 */
 export async function deletePlayer(id: string): Promise<boolean> {
   const { error } = await supabase
     .from("players")
@@ -482,4 +505,3 @@ export async function deletePlayer(id: string): Promise<boolean> {
   }
   return true;
 }
-

@@ -7,12 +7,14 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTeamLink } from "@/hooks/use-team-link";
 import { fetchAnnouncementById } from "@/lib/supabase-data";
 import { GRADES } from "@/lib/constants";
 import type { Announcement } from "@/lib/types";
 
 function AnnouncementDetailContent() {
   const searchParams = useSearchParams();
+  const teamLink = useTeamLink();
   const id = searchParams.get("id") ?? "";
   const [ann, setAnn] = useState<Announcement | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,7 +35,7 @@ function AnnouncementDetailContent() {
   }
 
   if (!ann) {
-    return (<div className="px-4 py-12 text-center"><h1 className="text-base font-bold mb-2">お知らせが見つかりません</h1><Link href="/announcements" className="text-primary font-bold text-[13px]">お知らせ一覧に戻る</Link></div>);
+    return (<div className="px-4 py-12 text-center"><h1 className="text-base font-bold mb-2">お知らせが見つかりません</h1><Link href={teamLink("/announcements")} className="text-primary font-bold text-[13px]">お知らせ一覧に戻る</Link></div>);
   }
 
   const isAllGrades = ann.targetGrades.length === 3;
@@ -46,7 +48,7 @@ function AnnouncementDetailContent() {
 
   return (
     <div className="px-4 py-4 space-y-4 pb-20">
-      <Link href="/announcements" className="inline-flex items-center gap-1 text-[13px] text-muted active:text-primary transition-colors py-1 pr-2"><ArrowLeft className="w-4 h-4" />お知らせ一覧に戻る</Link>
+      <Link href={teamLink("/announcements")} className="inline-flex items-center gap-1 text-[13px] text-muted active:text-primary transition-colors py-1 pr-2"><ArrowLeft className="w-4 h-4" />お知らせ一覧に戻る</Link>
 
       <article className="bg-surface rounded-2xl border border-border overflow-hidden animate-fade-in-up shadow-sm">
         <div className="bg-gradient-subtle p-4 border-b border-border/50">
@@ -57,9 +59,7 @@ function AnnouncementDetailContent() {
             ) : (
               ann.targetGrades.map(g => {
                 const gradeConfig = GRADES.find(gr => gr.value === g);
-                return (
-                  <span key={g} className={cn("text-[11px] font-black px-2 py-1 rounded-lg border-2", gradeColors[g] || "text-primary bg-primary-50 border-primary/30")}>📨 宛先: {gradeConfig?.label}</span>
-                );
+                return (<span key={g} className={cn("text-[11px] font-black px-2 py-1 rounded-lg border-2", gradeColors[g] || "text-primary bg-primary-50 border-primary/30")}>📨 宛先: {gradeConfig?.label}</span>);
               })
             )}
           </div>
@@ -71,7 +71,6 @@ function AnnouncementDetailContent() {
         </div>
         <div className="p-4 sm:p-5"><div className="text-[14px] leading-loose whitespace-pre-wrap text-foreground">{ann.body}</div></div>
       </article>
-
     </div>
   );
 }
