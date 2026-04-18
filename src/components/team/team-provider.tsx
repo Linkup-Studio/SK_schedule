@@ -43,17 +43,17 @@ export function TeamProvider({
       const { data, error } = await supabase
         .from("teams")
         .select("*")
-        .eq("slug", teamSlug)
+        .eq("id", teamSlug)
         .single();
 
       if (!error && data) {
         setTeam({
           id: data.id,
-          slug: data.slug,
+          slug: data.id,
           name: data.name,
-          shortName: data.short_name,
-          passcode: data.passcode,
-          adminPasscode: data.admin_passcode,
+          shortName: data.id.toUpperCase(),
+          passcode: data.passphrase,
+          adminPasscode: data.admin_pin,
         });
       }
       setLoading(false);

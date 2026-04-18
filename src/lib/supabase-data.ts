@@ -77,7 +77,7 @@ export async function resolveTeamId(teamSlug: string): Promise<string | null> {
   const { data, error } = await supabase
     .from("teams")
     .select("id")
-    .eq("slug", teamSlug)
+    .eq("id", teamSlug)
     .single();
 
   if (error || !data) return null;
