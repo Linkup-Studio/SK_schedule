@@ -86,7 +86,7 @@ export function Header() {
             onClick={() => {
               localStorage.removeItem(`${teamSlug}_team_auth`);
               localStorage.removeItem(storageKey);
-              window.location.href = `/${teamSlug}/`;
+              window.location.href = `/${teamSlug}/dashboard/`;
             }}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-muted active:scale-90 transition-all"
           >
