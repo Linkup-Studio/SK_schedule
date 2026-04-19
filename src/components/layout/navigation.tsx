@@ -6,7 +6,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
-import { Home, Calendar, Megaphone, Plus } from "lucide-react";
+import { Home, Calendar, Megaphone, Plus, LogOut } from "lucide-react";
 
 export function Header() {
   const { team, teamSlug } = useTeam();
@@ -65,7 +65,8 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 glass-card safe-top">
-        <div className="px-4 h-12 flex items-center justify-center">
+        <div className="px-4 h-12 flex items-center justify-between">
+          <div className="w-8" />
           <button
             type="button"
             onClick={handleLogoTap}
@@ -79,6 +80,17 @@ export function Header() {
             </div>
             <span className="font-black text-sm text-primary">{teamName}</span>
             {isAdmin && <Link href={teamLink("/members")} className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-200 active:scale-95 transition-transform">管理者</Link>}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem(`${teamSlug}_team_auth`);
+              localStorage.removeItem(storageKey);
+              window.location.href = `/${teamSlug}/`;
+            }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-muted active:scale-90 transition-all"
+          >
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
       </header>
