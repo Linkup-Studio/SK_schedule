@@ -35,8 +35,21 @@ export function TeamProvider({
   teamSlug: string;
   children: React.ReactNode;
 }) {
-  const [team, setTeam] = useState<TeamInfo | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `team_cache_${teamSlug}`;
+
+  const [team, setTeam] = useState<TeamInfo | null>(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [loading, setLoading] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return !localStorage.getItem(cacheKey);
+  });
 
   useEffect(() => {
     async function loadTeam() {
@@ -47,19 +60,21 @@ export function TeamProvider({
         .single();
 
       if (!error && data) {
-        setTeam({
+        const teamData: TeamInfo = {
           id: data.id,
           slug: data.id,
           name: data.name,
           shortName: data.id.toUpperCase(),
           passcode: data.passphrase,
           adminPasscode: data.admin_pin,
-        });
+        };
+        setTeam(teamData);
+        localStorage.setItem(cacheKey, JSON.stringify(teamData));
       }
       setLoading(false);
     }
     loadTeam();
-  }, [teamSlug]);
+  }, [teamSlug, cacheKey]);
 
   return (
     <TeamContext.Provider value={{ team, teamSlug, loading }}>

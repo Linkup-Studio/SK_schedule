@@ -29,7 +29,12 @@ export function GlobalLock({ children }: { children: React.ReactNode }) {
   };
 
   if (isUnlocked === null || teamLoading) {
-    return <div className="h-[100dvh] bg-background" />;
+    return (
+      <div className="h-[100dvh] bg-background flex flex-col items-center justify-center">
+        <div className="w-10 h-10 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
+        <p className="text-xs text-muted mt-3 font-bold">読み込み中...</p>
+      </div>
+    );
   }
 
   if (isUnlocked) {
