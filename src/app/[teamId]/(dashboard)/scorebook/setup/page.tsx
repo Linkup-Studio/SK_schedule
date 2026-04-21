@@ -307,7 +307,7 @@ function SetupContent() {
         </div>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-white/95 backdrop-blur-md border-t border-border safe-bottom">
+      <div className="fixed bottom-[72px] left-0 right-0 z-[60] p-4 bg-white/95 backdrop-blur-md border-t border-border">
         <button
           onClick={handleSave}
           disabled={saving || selectedPlayers.length < 9}
