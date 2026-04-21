@@ -208,9 +208,9 @@ function SetupContent() {
         試合一覧に戻る
       </Link>
 
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-4 text-white shadow-sm">
+      <div className="bg-gradient-hero rounded-2xl p-4 text-white shadow-sm">
         <h1 className="text-lg font-black mb-1">打順・守備位置</h1>
-        <p className="text-[12px] text-emerald-100">
+        <p className="text-[12px] text-primary-100">
           vs {scorebook.opponent} ・ 出席者: {attendees.length}人
         </p>
       </div>
@@ -315,7 +315,7 @@ function SetupContent() {
             "w-full py-3.5 rounded-xl font-black text-[15px] shadow-lg transition-all flex items-center justify-center gap-2",
             saving || selectedPlayers.length < 9
               ? "bg-gray-300 text-gray-500"
-              : "bg-emerald-600 text-white shadow-emerald-600/30 active:scale-[0.98]"
+              : "bg-primary text-white shadow-primary/30 active:scale-[0.98]"
           )}
         >
           {saving ? (

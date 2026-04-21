@@ -158,11 +158,11 @@ function LiveContent() {
           "rounded-2xl p-4 text-white shadow-sm",
           isCompleted
             ? won
-              ? "bg-gradient-to-r from-emerald-600 to-green-600"
+              ? "bg-gradient-to-r from-attend to-green-600"
               : lost
                 ? "bg-gradient-to-r from-red-500 to-rose-600"
                 : "bg-gradient-to-r from-gray-500 to-gray-600"
-            : "bg-gradient-to-r from-emerald-600 to-teal-600"
+            : "bg-gradient-hero"
         )}
       >
         <div className="flex items-center justify-between">
@@ -352,7 +352,7 @@ function LiveContent() {
                         setSelectedInning(scorebook.currentInning);
                         setShowAtBatModal(true);
                       }}
-                      className="px-2 py-1 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-bold active:scale-95 transition-transform"
+                      className="px-2 py-1 rounded-lg bg-primary-50 border border-primary/20 text-primary text-[10px] font-bold active:scale-95 transition-transform"
                     >
                       + 打席
                     </button>

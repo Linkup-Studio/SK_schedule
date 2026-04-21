@@ -98,12 +98,12 @@ export default function ScorebookPage() {
         ホームに戻る
       </Link>
 
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-2xl p-4 text-white shadow-sm">
+      <div className="bg-gradient-hero rounded-2xl p-4 text-white shadow-sm">
         <div className="flex items-center gap-2 mb-1">
           <ClipboardList className="w-5 h-5" />
           <h1 className="text-lg font-black">スコアブック</h1>
         </div>
-        <p className="text-[12px] text-emerald-100">
+        <p className="text-[12px] text-primary-100">
           試合を選んでスコアを記録しましょう
         </p>
       </div>
@@ -111,7 +111,7 @@ export default function ScorebookPage() {
       {scorebooks.filter((sb) => sb.status !== "completed").length > 0 && (
         <div className="space-y-2">
           <h2 className="text-[13px] font-black text-primary flex items-center gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             記録中の試合
           </h2>
           {scorebooks
@@ -130,15 +130,15 @@ export default function ScorebookPage() {
                       )
                     )
                   }
-                  className="w-full bg-emerald-50 border-2 border-emerald-200 rounded-xl p-3 text-left active:scale-[0.98] transition-all"
+                  className="w-full bg-primary-50 border-2 border-primary/20 rounded-xl p-3 text-left active:scale-[0.98] transition-all"
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[13px] font-black text-emerald-800">
+                      <p className="text-[13px] font-black text-primary">
                         vs {sb.opponent}
                       </p>
                       {game && (
-                        <p className="text-[11px] text-emerald-600 mt-0.5">
+                        <p className="text-[11px] text-primary-light mt-0.5">
                           {format(new Date(game.dateStart), "M/d（E）", {
                             locale: ja,
                           })}
@@ -147,11 +147,11 @@ export default function ScorebookPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       {sb.status === "live" && (
-                        <span className="text-[15px] font-black text-emerald-700">
+                        <span className="text-[15px] font-black text-primary">
                           {sb.totalScoreUs} - {sb.totalScoreThem}
                         </span>
                       )}
-                      <ChevronRight className="w-4 h-4 text-emerald-400" />
+                      <ChevronRight className="w-4 h-4 text-primary-light" />
                     </div>
                   </div>
                 </button>
@@ -258,7 +258,7 @@ export default function ScorebookPage() {
                         {game.type === "official" ? "公式戦" : "練習試合"}
                       </span>
                       {hasScorebook && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 border border-emerald-200">
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-primary-light border border-emerald-200">
                           記録済み
                         </span>
                       )}
