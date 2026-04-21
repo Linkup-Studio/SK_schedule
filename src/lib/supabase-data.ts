@@ -305,18 +305,15 @@ export async function fetchAttendanceSummary(gameId: string, teamSlug: string, g
   const attendances = await fetchAttendancesByGame(gameId);
   const attend = attendances.filter((a) => a.status === "attend").length;
   const absent = attendances.filter((a) => a.status === "absent").length;
-  const undecided = 0;
+  const undecided = attendances.filter((a) => a.status === "undecided").length;
 
   let totalPlayers = 0;
-  if (typeof window !== "undefined" && grades && grades.length > 0) {
-    const saved = localStorage.getItem(`${teamSlug}_player_counts`);
-    if (saved) {
-      const counts = JSON.parse(saved) as Record<string, number>;
-      totalPlayers = grades.reduce((sum, g) => sum + (counts[String(g)] ?? 0), 0);
-    }
+  if (grades && grades.length > 0) {
+    const counts = await fetchPlayerCounts(teamSlug);
+    totalPlayers = grades.reduce((sum, g) => sum + (counts[String(g)] ?? 0), 0);
   }
-  const noAnswer = Math.max(0, totalPlayers - attend - absent);
-  const total = attend + absent + noAnswer;
+  const noAnswer = Math.max(0, totalPlayers - attend - absent - undecided);
+  const total = attend + absent + undecided + noAnswer;
 
   return { attend, absent, undecided, noAnswer, total };
 }
@@ -439,6 +436,40 @@ export async function updateAnnouncement(id: string, input: {
     return null;
   }
   return data ? toAnnouncement(data) : null;
+}
+
+// =============================================
+// 選手人数（player_counts）
+// =============================================
+
+export async function fetchPlayerCounts(teamSlug: string): Promise<Record<string, number>> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return {};
+
+  const { data, error } = await supabase
+    .from("teams")
+    .select("player_counts")
+    .eq("id", teamId)
+    .single();
+
+  if (error || !data?.player_counts) return {};
+  return data.player_counts as Record<string, number>;
+}
+
+export async function updatePlayerCounts(teamSlug: string, counts: Record<number, number>): Promise<boolean> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return false;
+
+  const { error } = await supabase
+    .from("teams")
+    .update({ player_counts: counts })
+    .eq("id", teamId);
+
+  if (error) {
+    console.error("選手人数の更新に失敗しました:", error.message);
+    return false;
+  }
+  return true;
 }
 
 // =============================================
