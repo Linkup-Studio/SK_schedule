@@ -81,24 +81,39 @@ function LiveContent() {
   );
 
   const launchFireworks = useCallback(() => {
-    const duration = 3000;
+    const duration = 4000;
     const end = Date.now() + duration;
-    const colors = ["#1a237e", "#3949ab", "#5c6bc0", "#FFD700", "#FF6B6B"];
+    const colors = ["#FF0000", "#FF6600", "#FFDD00", "#00FF00", "#00CCFF", "#FF00FF", "#FF1493", "#FFD700", "#7B68EE", "#00FF7F"];
+
+    confetti({
+      particleCount: 100,
+      spread: 100,
+      origin: { x: 0.5, y: 0.4 },
+      colors,
+      startVelocity: 45,
+    });
+
+    setTimeout(() => {
+      confetti({ particleCount: 80, angle: 60, spread: 70, origin: { x: 0, y: 0.6 }, colors, startVelocity: 50 });
+      confetti({ particleCount: 80, angle: 120, spread: 70, origin: { x: 1, y: 0.6 }, colors, startVelocity: 50 });
+    }, 300);
 
     (function frame() {
       confetti({
-        particleCount: 3,
+        particleCount: 5,
         angle: 60,
-        spread: 55,
+        spread: 80,
         origin: { x: 0, y: 0.7 },
         colors,
+        startVelocity: 40,
       });
       confetti({
-        particleCount: 3,
+        particleCount: 5,
         angle: 120,
-        spread: 55,
+        spread: 80,
         origin: { x: 1, y: 0.7 },
         colors,
+        startVelocity: 40,
       });
       if (Date.now() < end) requestAnimationFrame(frame);
     })();
