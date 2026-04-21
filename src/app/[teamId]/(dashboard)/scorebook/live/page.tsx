@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, Loader2, Plus, Minus, RotateCcw, Trophy,
+  ArrowLeft, Loader2, Plus, Minus, RotateCcw, Trophy, ArrowLeftRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeamLink } from "@/hooks/use-team-link";
@@ -15,9 +15,23 @@ import {
   updateScorebookGame,
   addAtBat,
   deleteAtBat,
+  substitutePlayer,
 } from "@/lib/scorebook-data";
+import { fetchAttendancesByGame } from "@/lib/supabase-data";
 import { AT_BAT_RESULTS, POSITIONS } from "@/lib/scorebook-types";
 import type { ScorebookGame, LineupEntry, AtBat, AtBatResult } from "@/lib/scorebook-types";
+import type { Attendance } from "@/lib/types";
+
+function getActiveLineup(allLineup: LineupEntry[]): LineupEntry[] {
+  const byOrder: Record<number, LineupEntry> = {};
+  for (const entry of allLineup) {
+    const existing = byOrder[entry.battingOrder];
+    if (!existing || new Date(entry.createdAt) > new Date(existing.createdAt)) {
+      byOrder[entry.battingOrder] = entry;
+    }
+  }
+  return Object.values(byOrder).sort((a, b) => a.battingOrder - b.battingOrder);
+}
 
 function LiveContent() {
   const searchParams = useSearchParams();
@@ -25,14 +39,18 @@ function LiveContent() {
   const scorebookId = searchParams.get("id") ?? "";
 
   const [scorebook, setScorebook] = useState<ScorebookGame | null>(null);
-  const [lineup, setLineup] = useState<LineupEntry[]>([]);
+  const [allLineup, setAllLineup] = useState<LineupEntry[]>([]);
   const [atBats, setAtBats] = useState<AtBat[]>([]);
+  const [attendees, setAttendees] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const [showAtBatModal, setShowAtBatModal] = useState(false);
   const [selectedBatter, setSelectedBatter] = useState<LineupEntry | null>(null);
   const [selectedInning, setSelectedInning] = useState(1);
+
+  const [showSubModal, setShowSubModal] = useState(false);
+  const [subTarget, setSubTarget] = useState<LineupEntry | null>(null);
 
   useEffect(() => {
     if (!scorebookId) return;
@@ -43,12 +61,23 @@ function LiveContent() {
         fetchAtBats(scorebookId),
       ]);
       setScorebook(sb);
-      setLineup(lu);
+      setAllLineup(lu);
       setAtBats(ab);
+
+      if (sb) {
+        const atts = await fetchAttendancesByGame(sb.gameId);
+        setAttendees(atts.filter((a) => a.status === "attend"));
+      }
       setLoading(false);
     }
     load();
   }, [scorebookId]);
+
+  const activeLineup = getActiveLineup(allLineup);
+  const activeNames = new Set(activeLineup.map((e) => e.playerName));
+  const benchPlayers = attendees.filter(
+    (a) => !activeNames.has(a.userName ?? a.userId)
+  );
 
   const updateScore = useCallback(
     async (inning: number, isUs: boolean, delta: number) => {
@@ -116,6 +145,23 @@ function LiveContent() {
     if (ok) setAtBats((prev) => prev.filter((a) => a.id !== id));
   };
 
+  const handleSubstitute = async (newPlayerName: string, position: number | null) => {
+    if (!subTarget) return;
+    setSaving(true);
+    const newEntry = await substitutePlayer(
+      scorebookId,
+      subTarget.battingOrder,
+      newPlayerName,
+      position
+    );
+    if (newEntry) {
+      setAllLineup((prev) => [...prev, newEntry]);
+    }
+    setShowSubModal(false);
+    setSubTarget(null);
+    setSaving(false);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -168,7 +214,7 @@ function LiveContent() {
             {isCompleted && (
               <span className={cn(
                 "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full mt-1",
-                won ? "bg-white/20" : lost ? "bg-white/20" : "bg-white/20"
+                "bg-white/20"
               )}>
                 {won ? "勝利" : lost ? "惜敗" : "引き分け"}
               </span>
@@ -305,7 +351,7 @@ function LiveContent() {
           <h2 className="text-[13px] font-black text-primary">打順・成績</h2>
         </div>
         <div className="divide-y divide-border/50">
-          {lineup.map((entry) => {
+          {activeLineup.map((entry) => {
             const playerAtBats = atBats.filter(
               (ab) => ab.playerName === entry.playerName
             );
@@ -315,6 +361,11 @@ function LiveContent() {
             const totalAB = playerAtBats.filter(
               (ab) => !["walk", "hit_by_pitch", "sacrifice"].includes(ab.result)
             ).length;
+
+            const isSubstitute = !entry.isStarter;
+            const prevPlayers = allLineup
+              .filter((e) => e.battingOrder === entry.battingOrder && e.id !== entry.id)
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
             return (
               <div key={entry.id} className="px-3 py-2.5">
@@ -329,6 +380,9 @@ function LiveContent() {
                   )}
                   <span className="text-[13px] font-bold flex-1 truncate">
                     {entry.playerName}
+                    {isSubstitute && (
+                      <span className="text-[9px] text-primary-light ml-1">途中出場</span>
+                    )}
                   </span>
                   {totalAB > 0 && (
                     <span className="text-[10px] font-bold text-muted">
@@ -336,18 +390,60 @@ function LiveContent() {
                     </span>
                   )}
                   {!isCompleted && (
-                    <button
-                      onClick={() => {
-                        setSelectedBatter(entry);
-                        setSelectedInning(scorebook.currentInning);
-                        setShowAtBatModal(true);
-                      }}
-                      className="px-2 py-1 rounded-lg bg-primary-50 border border-primary/20 text-primary text-[10px] font-bold active:scale-95 transition-transform"
-                    >
-                      + 打席
-                    </button>
+                    <>
+                      <button
+                        onClick={() => {
+                          setSubTarget(entry);
+                          setShowSubModal(true);
+                        }}
+                        className="w-7 h-7 rounded-lg bg-surface-variant flex items-center justify-center active:scale-90 transition-transform"
+                        title="選手交代"
+                      >
+                        <ArrowLeftRight className="w-3.5 h-3.5 text-primary" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedBatter(entry);
+                          setSelectedInning(scorebook.currentInning);
+                          setShowAtBatModal(true);
+                        }}
+                        className="px-2 py-1 rounded-lg bg-primary-50 border border-primary/20 text-primary text-[10px] font-bold active:scale-95 transition-transform"
+                      >
+                        + 打席
+                      </button>
+                    </>
                   )}
                 </div>
+                {/* 交代前の選手の打席結果 */}
+                {prevPlayers.map((prev) => {
+                  const prevAtBats = atBats.filter(
+                    (ab) => ab.playerName === prev.playerName
+                  );
+                  if (prevAtBats.length === 0) return null;
+                  return (
+                    <div key={prev.id} className="ml-7 mb-1">
+                      <span className="text-[10px] text-muted mr-1">{prev.playerName}:</span>
+                      <span className="inline-flex flex-wrap gap-1">
+                        {prevAtBats.map((ab) => {
+                          const info = AT_BAT_RESULTS[ab.result];
+                          return (
+                            <span
+                              key={ab.id}
+                              className={cn(
+                                "px-1.5 py-0.5 rounded text-[10px] font-bold border",
+                                info?.color ?? "text-gray-500",
+                                "bg-white border-border opacity-60"
+                              )}
+                            >
+                              {info?.short ?? ab.result}
+                            </span>
+                          );
+                        })}
+                      </span>
+                    </div>
+                  );
+                })}
+                {/* 現在の選手の打席結果 */}
                 {playerAtBats.length > 0 && (
                   <div className="flex flex-wrap gap-1 ml-7">
                     {playerAtBats.map((ab) => {
@@ -416,6 +512,131 @@ function LiveContent() {
           saving={saving}
         />
       )}
+
+      {/* 選手交代モーダル */}
+      {showSubModal && subTarget && (
+        <SubstitutionModal
+          currentPlayer={subTarget}
+          benchPlayers={benchPlayers}
+          onSubmit={handleSubstitute}
+          onClose={() => {
+            setShowSubModal(false);
+            setSubTarget(null);
+          }}
+          saving={saving}
+        />
+      )}
+    </div>
+  );
+}
+
+function SubstitutionModal({
+  currentPlayer,
+  benchPlayers,
+  onSubmit,
+  onClose,
+  saving,
+}: {
+  currentPlayer: LineupEntry;
+  benchPlayers: Attendance[];
+  onSubmit: (playerName: string, position: number | null) => void;
+  onClose: () => void;
+  saving: boolean;
+}) {
+  const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
+  const [position, setPosition] = useState<number | null>(currentPlayer.position);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/50 backdrop-blur-sm animate-fade-in-up">
+      <div className="bg-white rounded-t-2xl w-full max-w-lg p-4 pb-8 safe-bottom max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-black text-[15px]">選手交代</h3>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center text-primary active:scale-90 transition-transform"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="bg-primary-50 rounded-xl p-3 mb-3">
+          <p className="text-[11px] text-muted mb-0.5">交代する選手</p>
+          <p className="text-[14px] font-black text-primary">
+            {currentPlayer.battingOrder}番 {currentPlayer.playerName}
+            {currentPlayer.position && (
+              <span className="text-[11px] font-bold ml-1">
+                （{POSITIONS[currentPlayer.position]?.label}）
+              </span>
+            )}
+          </p>
+        </div>
+
+        <div className="mb-3">
+          <p className="text-[11px] font-bold text-muted mb-1.5">交代先の選手</p>
+          {benchPlayers.length === 0 ? (
+            <p className="text-[13px] text-muted py-4 text-center">控え選手がいません</p>
+          ) : (
+            <div className="space-y-1.5">
+              {benchPlayers.map((player) => {
+                const name = player.userName ?? player.userId;
+                return (
+                  <button
+                    key={player.id}
+                    onClick={() => setSelectedPlayer(name)}
+                    className={cn(
+                      "w-full px-3 py-2.5 rounded-xl border text-left text-[13px] font-bold transition-all active:scale-[0.98]",
+                      selectedPlayer === name
+                        ? "bg-primary text-white border-primary"
+                        : "bg-surface border-border text-foreground"
+                    )}
+                  >
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {selectedPlayer && (
+          <div className="mb-4">
+            <p className="text-[11px] font-bold text-muted mb-1.5">守備位置</p>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(POSITIONS).map(([num, pos]) => (
+                <button
+                  key={num}
+                  onClick={() =>
+                    setPosition(position === Number(num) ? null : Number(num))
+                  }
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-[12px] font-bold border transition-all active:scale-95",
+                    position === Number(num)
+                      ? "bg-primary text-white border-primary"
+                      : "bg-white border-border text-muted"
+                  )}
+                >
+                  {pos.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {selectedPlayer && (
+          <button
+            onClick={() => onSubmit(selectedPlayer, position)}
+            disabled={saving}
+            className="w-full py-3 rounded-xl bg-primary text-white font-black text-[14px] shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <ArrowLeftRight className="w-4 h-4" />
+            )}
+            {currentPlayer.playerName} → {selectedPlayer} に交代
+          </button>
+        )}
+      </div>
     </div>
   );
 }

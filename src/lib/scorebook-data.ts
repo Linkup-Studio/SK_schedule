@@ -241,6 +241,31 @@ export async function deleteAtBat(id: string): Promise<boolean> {
   return true;
 }
 
+export async function substitutePlayer(
+  scorebookGameId: string,
+  battingOrder: number,
+  newPlayerName: string,
+  position: number | null
+): Promise<LineupEntry | null> {
+  const { data, error } = await supabase
+    .from("scorebook_lineup")
+    .insert({
+      scorebook_game_id: scorebookGameId,
+      player_name: newPlayerName,
+      batting_order: battingOrder,
+      position: position,
+      is_starter: false,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("選手交代に失敗:", error.message);
+    return null;
+  }
+  return data ? toLineupEntry(data) : null;
+}
+
 export async function deleteScorebookGame(id: string): Promise<boolean> {
   const { error } = await supabase.from("scorebook_games").delete().eq("id", id);
   if (error) {
