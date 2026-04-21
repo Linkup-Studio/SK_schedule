@@ -9,7 +9,7 @@ import { ArrowLeft, Users, Minus, Plus, Settings, Megaphone, Trash2, Loader2, Pe
 import { GRADES } from "@/lib/constants";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
-import { fetchAnnouncements, deleteAnnouncement, cleanupOldAnnouncements } from "@/lib/supabase-data";
+import { fetchAnnouncements, deleteAnnouncement, cleanupOldAnnouncements, fetchPlayerCountsByGrade, updatePlayerCounts } from "@/lib/supabase-data";
 import type { Announcement } from "@/lib/types";
 
 export default function AdminMenuPage() {
@@ -17,7 +17,6 @@ export default function AdminMenuPage() {
   const { teamSlug } = useTeam();
   const teamLink = useTeamLink();
   const storageKey = `${teamSlug}_admin`;
-  const playerCountsKey = `${teamSlug}_player_counts`;
 
   const [isAdmin, setIsAdmin] = useState(false);
   const [counts, setCounts] = useState<Record<number, number>>({ 1: 0, 2: 0, 3: 0 });
@@ -29,11 +28,20 @@ export default function AdminMenuPage() {
     if (!admin) { router.replace(teamLink("/dashboard")); return; }
     setIsAdmin(true);
 
-    const saved = localStorage.getItem(playerCountsKey);
-    if (saved) setCounts(JSON.parse(saved));
-
+    // Supabaseから選手人数を読み込み
+    async function loadCounts() {
+      const saved = await fetchPlayerCountsByGrade(teamSlug);
+      if (Object.keys(saved).length > 0) {
+        const parsed: Record<number, number> = {};
+        for (const [k, v] of Object.entries(saved)) {
+          parsed[Number(k)] = v;
+        }
+        setCounts(prev => ({ ...prev, ...parsed }));
+      }
+    }
+    loadCounts();
     loadAnnouncements();
-  }, [router, storageKey, playerCountsKey, teamLink]);
+  }, [router, storageKey, teamLink, teamSlug]);
 
   async function loadAnnouncements() {
     setLoadingAnnouncements(true);
@@ -46,7 +54,13 @@ export default function AdminMenuPage() {
   const updateCount = (grade: number, delta: number) => {
     setCounts(prev => {
       const next = { ...prev, [grade]: Math.max(0, (prev[grade] ?? 0) + delta) };
-      localStorage.setItem(playerCountsKey, JSON.stringify(next));
+      // Supabase & localStorageの両方に保存（localStorageは後方互換性のため）
+      const stringKeyed: Record<string, number> = {};
+      for (const [k, v] of Object.entries(next)) {
+        stringKeyed[String(k)] = v;
+      }
+      updatePlayerCounts(teamSlug, stringKeyed);
+      localStorage.setItem(`${teamSlug}_player_counts`, JSON.stringify(next));
       return next;
     });
   };

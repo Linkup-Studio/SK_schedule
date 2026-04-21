@@ -302,13 +302,33 @@ export async function deleteAttendance(id: string): Promise<boolean> {
 }
 
 export async function fetchPlayerCountsByGrade(teamSlug: string): Promise<Record<string, number>> {
-  const players = await fetchPlayers(teamSlug);
-  const counts: Record<string, number> = {};
-  for (const p of players) {
-    const key = String(p.grade);
-    counts[key] = (counts[key] ?? 0) + 1;
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return {};
+
+  const { data, error } = await supabase
+    .from("teams")
+    .select("player_counts")
+    .eq("id", teamId)
+    .single();
+
+  if (error || !data || !data.player_counts) return {};
+  return data.player_counts as Record<string, number>;
+}
+
+export async function updatePlayerCounts(teamSlug: string, counts: Record<string, number>): Promise<boolean> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return false;
+
+  const { error } = await supabase
+    .from("teams")
+    .update({ player_counts: counts })
+    .eq("id", teamId);
+
+  if (error) {
+    console.error("選手人数の更新に失敗:", error.message);
+    return false;
   }
-  return counts;
+  return true;
 }
 
 export async function fetchAttendanceSummary(gameId: string, teamSlug: string, grades?: GradeValue[]): Promise<AttendanceSummary> {
