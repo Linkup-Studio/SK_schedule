@@ -56,17 +56,17 @@ export function TeamProvider({
       const { data, error } = await supabase
         .from("teams")
         .select("*")
-        .eq("id", teamSlug)
+        .eq("slug", teamSlug)
         .single();
 
       if (!error && data) {
         const teamData: TeamInfo = {
           id: data.id,
-          slug: data.id,
+          slug: data.slug,
           name: data.name,
-          shortName: data.id.toUpperCase(),
-          passcode: data.passphrase,
-          adminPasscode: data.admin_pin,
+          shortName: data.short_name ?? data.slug.toUpperCase(),
+          passcode: data.passcode ?? data.passphrase ?? "",
+          adminPasscode: data.admin_passcode ?? data.admin_pin ?? "",
         };
         setTeam(teamData);
         localStorage.setItem(cacheKey, JSON.stringify(teamData));
