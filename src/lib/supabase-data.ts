@@ -301,22 +301,29 @@ export async function deleteAttendance(id: string): Promise<boolean> {
   return true;
 }
 
+export async function fetchPlayerCountsByGrade(teamSlug: string): Promise<Record<string, number>> {
+  const players = await fetchPlayers(teamSlug);
+  const counts: Record<string, number> = {};
+  for (const p of players) {
+    const key = String(p.grade);
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+  return counts;
+}
+
 export async function fetchAttendanceSummary(gameId: string, teamSlug: string, grades?: GradeValue[]): Promise<AttendanceSummary> {
   const attendances = await fetchAttendancesByGame(gameId);
   const attend = attendances.filter((a) => a.status === "attend").length;
   const absent = attendances.filter((a) => a.status === "absent").length;
-  const undecided = 0;
+  const undecided = attendances.filter((a) => a.status === "undecided").length;
 
   let totalPlayers = 0;
-  if (typeof window !== "undefined" && grades && grades.length > 0) {
-    const saved = localStorage.getItem(`${teamSlug}_player_counts`);
-    if (saved) {
-      const counts = JSON.parse(saved) as Record<string, number>;
-      totalPlayers = grades.reduce((sum, g) => sum + (counts[String(g)] ?? 0), 0);
-    }
+  if (grades && grades.length > 0) {
+    const counts = await fetchPlayerCountsByGrade(teamSlug);
+    totalPlayers = grades.reduce((sum, g) => sum + (counts[String(g)] ?? 0), 0);
   }
-  const noAnswer = Math.max(0, totalPlayers - attend - absent);
-  const total = attend + absent + noAnswer;
+  const noAnswer = Math.max(0, totalPlayers - attend - absent - undecided);
+  const total = attend + absent + undecided + noAnswer;
 
   return { attend, absent, undecided, noAnswer, total };
 }

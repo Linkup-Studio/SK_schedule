@@ -12,7 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
-import { fetchGameById, fetchAttendancesByGame, upsertAttendance, deleteGame, deleteAttendance } from "@/lib/supabase-data";
+import { fetchGameById, fetchAttendancesByGame, upsertAttendance, deleteGame, deleteAttendance, fetchPlayerCountsByGrade } from "@/lib/supabase-data";
 import { GameTypeBadge, GradeBadge, AttendanceBadge } from "@/components/common/badges";
 import type { AttendanceStatusValue } from "@/lib/constants";
 import type { Game, Attendance } from "@/lib/types";
@@ -43,21 +43,23 @@ function GameDetailContent() {
   const [reason, setReason] = useState("");
   const [showCopied, setShowCopied] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [gradeCounts, setGradeCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     setIsAdmin(localStorage.getItem(storageKey) === "true");
     if (!id) return;
     async function load() {
       setLoading(true);
-      const [gameData, attData] = await Promise.all([
-        fetchGameById(id), fetchAttendancesByGame(id),
+      const [gameData, attData, counts] = await Promise.all([
+        fetchGameById(id), fetchAttendancesByGame(id), fetchPlayerCountsByGrade(teamSlug),
       ]);
       setGame(gameData);
       setAttendances(attData);
+      setGradeCounts(counts);
       setLoading(false);
     }
     load();
-  }, [id, storageKey]);
+  }, [id, storageKey, teamSlug]);
 
   const handleFinalSubmit = async () => {
     if (!playerName.trim()) { alert("選手のお名前を入力してください"); return; }
@@ -95,8 +97,6 @@ function GameDetailContent() {
   const attendCnt = attendances.filter((a) => a.status === "attend").length;
   const absentCnt = attendances.filter((a) => a.status === "absent").length;
   const undecidedCnt = attendances.filter((a) => a.status === "undecided").length;
-  const savedCounts = typeof window !== "undefined" ? localStorage.getItem(`${teamSlug}_player_counts`) : null;
-  const gradeCounts = savedCounts ? JSON.parse(savedCounts) as Record<string, number> : {};
   const totalPlayers = game.grades.reduce((sum, g) => sum + (gradeCounts[String(g)] ?? 0), 0);
   const noAnswerCnt = Math.max(0, totalPlayers - attendCnt - absentCnt - undecidedCnt);
 
