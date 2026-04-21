@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, Loader2, Plus, Minus, RotateCcw, Trophy, ArrowLeftRight,
+  ArrowLeft, Loader2, Plus, Minus, RotateCcw, Trophy, ArrowLeftRight, Lock, Unlock,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 import { cn } from "@/lib/utils";
+import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
 import {
   fetchScorebookById,
@@ -36,6 +37,7 @@ function getActiveLineup(allLineup: LineupEntry[]): LineupEntry[] {
 
 function LiveContent() {
   const searchParams = useSearchParams();
+  const { team } = useTeam();
   const teamLink = useTeamLink();
   const scorebookId = searchParams.get("id") ?? "";
 
@@ -45,6 +47,9 @@ function LiveContent() {
   const [attendees, setAttendees] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  const [editMode, setEditMode] = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
 
   const [showAtBatModal, setShowAtBatModal] = useState(false);
   const [selectedBatter, setSelectedBatter] = useState<LineupEntry | null>(null);
@@ -79,6 +84,23 @@ function LiveContent() {
   const benchPlayers = attendees.filter(
     (a) => !activeNames.has(a.userName ?? a.userId)
   );
+
+  const handleLockToggle = () => {
+    if (editMode) {
+      setEditMode(false);
+    } else {
+      setShowPinModal(true);
+    }
+  };
+
+  const handlePinSubmit = (pin: string) => {
+    if (team && pin === team.adminPasscode) {
+      setEditMode(true);
+      setShowPinModal(false);
+    } else {
+      alert("PINが正しくありません");
+    }
+  };
 
   const launchFireworks = useCallback(() => {
     const duration = 4000;
@@ -230,6 +252,7 @@ function LiveContent() {
   const isCompleted = scorebook.status === "completed";
   const won = scorebook.totalScoreUs > scorebook.totalScoreThem;
   const lost = scorebook.totalScoreUs < scorebook.totalScoreThem;
+  const canEdit = editMode && !isCompleted;
 
   return (
     <div className="px-4 py-4 space-y-4 pb-20">
@@ -252,20 +275,39 @@ function LiveContent() {
               vs {scorebook.opponent}
             </p>
           </div>
-          <div className="text-right">
-            <div className="text-3xl font-black tracking-wider">
-              {scorebook.totalScoreUs} - {scorebook.totalScoreThem}
+          <div className="text-right flex items-start gap-2">
+            <div>
+              <div className="text-3xl font-black tracking-wider">
+                {scorebook.totalScoreUs} - {scorebook.totalScoreThem}
+              </div>
+              {isCompleted && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full mt-1 bg-white/20">
+                  {won ? "勝利" : lost ? "惜敗" : "引き分け"}
+                </span>
+              )}
             </div>
-            {isCompleted && (
-              <span className={cn(
-                "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full mt-1",
-                "bg-white/20"
-              )}>
-                {won ? "勝利" : lost ? "惜敗" : "引き分け"}
-              </span>
-            )}
+            {/* 編集モード鍵アイコン */}
+            <button
+              onClick={handleLockToggle}
+              className={cn(
+                "w-8 h-8 rounded-lg flex items-center justify-center active:scale-90 transition-all",
+                editMode ? "bg-white/30" : "bg-white/10"
+              )}
+            >
+              {editMode ? (
+                <Unlock className="w-4 h-4 text-white" />
+              ) : (
+                <Lock className="w-4 h-4 text-white/60" />
+              )}
+            </button>
           </div>
         </div>
+        {editMode && (
+          <div className="mt-2 flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            <span className="text-[10px] text-white/80 font-bold">編集モード</span>
+          </div>
+        )}
       </div>
 
       {/* 得点板 */}
@@ -306,7 +348,7 @@ function LiveContent() {
                   const isUs = !scorebook.isHome;
                   return (
                     <td key={inn} className="py-1 px-0.5">
-                      {!isCompleted ? (
+                      {canEdit ? (
                         <div className="flex flex-col items-center gap-0.5">
                           <button
                             onClick={() => updateScore(inn, isUs, 1)}
@@ -353,7 +395,7 @@ function LiveContent() {
                   const isUs = scorebook.isHome;
                   return (
                     <td key={inn} className="py-1 px-0.5">
-                      {!isCompleted ? (
+                      {canEdit ? (
                         <div className="flex flex-col items-center gap-0.5">
                           <button
                             onClick={() => updateScore(inn, isUs, 1)}
@@ -434,7 +476,7 @@ function LiveContent() {
                       {hits}/{totalAB}
                     </span>
                   )}
-                  {!isCompleted && (
+                  {canEdit && (
                     <>
                       <button
                         onClick={() => {
@@ -496,13 +538,15 @@ function LiveContent() {
                       return (
                         <button
                           key={ab.id}
-                          onClick={() => handleDeleteAtBat(ab.id)}
+                          onClick={() => editMode && handleDeleteAtBat(ab.id)}
+                          disabled={!editMode}
                           className={cn(
-                            "px-1.5 py-0.5 rounded text-[10px] font-bold border transition-all active:scale-90",
+                            "px-1.5 py-0.5 rounded text-[10px] font-bold border transition-all",
                             info?.color ?? "text-gray-500",
-                            "bg-white border-border"
+                            "bg-white border-border",
+                            editMode && "active:scale-90"
                           )}
-                          title="タップで削除"
+                          title={editMode ? "タップで削除" : ""}
                         >
                           {info?.short ?? ab.result}
                           {ab.rbi > 0 && (
@@ -521,8 +565,8 @@ function LiveContent() {
         </div>
       </div>
 
-      {/* 試合終了/再開ボタン */}
-      {!isCompleted ? (
+      {/* 試合終了/再開ボタン（編集モード時のみ） */}
+      {editMode && !isCompleted && (
         <button
           onClick={handleEndGame}
           disabled={saving}
@@ -531,7 +575,9 @@ function LiveContent() {
           <Trophy className="w-4 h-4" />
           試合終了
         </button>
-      ) : (
+      )}
+
+      {editMode && isCompleted && (
         <button
           onClick={handleReopenGame}
           disabled={saving}
@@ -571,6 +617,72 @@ function LiveContent() {
           saving={saving}
         />
       )}
+
+      {/* PIN入力モーダル */}
+      {showPinModal && (
+        <PinModal
+          onSubmit={handlePinSubmit}
+          onClose={() => setShowPinModal(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+function PinModal({
+  onSubmit,
+  onClose,
+}: {
+  onSubmit: (pin: string) => void;
+  onClose: () => void;
+}) {
+  const [pin, setPin] = useState("");
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl w-[300px] p-5 shadow-xl">
+        <div className="text-center mb-4">
+          <div className="w-12 h-12 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-2">
+            <Lock className="w-6 h-6 text-primary" />
+          </div>
+          <h3 className="font-black text-[15px]">管理者PIN</h3>
+          <p className="text-[11px] text-muted mt-1">
+            編集モードを有効にするにはPINを入力してください
+          </p>
+        </div>
+
+        <input
+          type="password"
+          inputMode="numeric"
+          value={pin}
+          onChange={(e) => setPin(e.target.value)}
+          placeholder="PINを入力"
+          className="w-full px-4 py-3 rounded-xl border border-border text-center text-[18px] font-bold tracking-[0.3em] focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 mb-3"
+          autoFocus
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && pin) onSubmit(pin);
+          }}
+        />
+
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-border text-muted font-bold text-[13px] active:scale-[0.98] transition-all"
+          >
+            キャンセル
+          </button>
+          <button
+            onClick={() => pin && onSubmit(pin)}
+            disabled={!pin}
+            className={cn(
+              "flex-1 py-2.5 rounded-xl font-bold text-[13px] active:scale-[0.98] transition-all",
+              pin ? "bg-primary text-white" : "bg-gray-200 text-gray-400"
+            )}
+          >
+            解除
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
