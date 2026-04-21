@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   ArrowLeft, Loader2, Plus, Minus, RotateCcw, Trophy, ArrowLeftRight,
 } from "lucide-react";
+import confetti from "canvas-confetti";
 import { cn } from "@/lib/utils";
 import { useTeamLink } from "@/hooks/use-team-link";
 import {
@@ -79,6 +80,30 @@ function LiveContent() {
     (a) => !activeNames.has(a.userName ?? a.userId)
   );
 
+  const launchFireworks = useCallback(() => {
+    const duration = 3000;
+    const end = Date.now() + duration;
+    const colors = ["#1a237e", "#3949ab", "#5c6bc0", "#FFD700", "#FF6B6B"];
+
+    (function frame() {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.7 },
+        colors,
+      });
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.7 },
+        colors,
+      });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    })();
+  }, []);
+
   const updateScore = useCallback(
     async (inning: number, isUs: boolean, delta: number) => {
       if (!scorebook) return;
@@ -109,7 +134,12 @@ function LiveContent() {
     const updated = await updateScorebookGame(scorebookId, {
       status: "completed",
     });
-    if (updated) setScorebook(updated);
+    if (updated) {
+      setScorebook(updated);
+      if (updated.totalScoreUs > updated.totalScoreThem) {
+        launchFireworks();
+      }
+    }
     setSaving(false);
   };
 
