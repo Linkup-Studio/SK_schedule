@@ -195,8 +195,8 @@ export default function ScorebookPage() {
                       <span
                         className={cn(
                           "text-[15px] font-black",
-                          won && "text-attend",
-                          lost && "text-absent",
+                          won && "text-primary",
+                          lost && "text-error",
                           !won && !lost && "text-muted"
                         )}
                       >
@@ -205,8 +205,8 @@ export default function ScorebookPage() {
                       <span
                         className={cn(
                           "text-[10px] font-black px-1.5 py-0.5 rounded",
-                          won && "bg-attend/10 text-attend",
-                          lost && "bg-absent/10 text-absent",
+                          won && "bg-primary-50 text-primary",
+                          lost && "bg-error/10 text-error",
                           !won && !lost && "bg-gray-100 text-muted"
                         )}
                       >
@@ -258,7 +258,7 @@ export default function ScorebookPage() {
                         {game.type === "official" ? "公式戦" : "練習試合"}
                       </span>
                       {hasScorebook && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-primary-light border border-emerald-200">
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary-50 text-primary border border-primary/20">
                           記録済み
                         </span>
                       )}
