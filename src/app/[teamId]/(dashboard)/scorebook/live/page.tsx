@@ -4,10 +4,9 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, Loader2, Plus, Minus, Check, RotateCcw, Trophy,
+  ArrowLeft, Loader2, Plus, Minus, RotateCcw, Trophy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
 import {
   fetchScorebookById,
@@ -22,7 +21,6 @@ import type { ScorebookGame, LineupEntry, AtBat, AtBatResult } from "@/lib/score
 
 function LiveContent() {
   const searchParams = useSearchParams();
-  const { teamSlug } = useTeam();
   const teamLink = useTeamLink();
   const scorebookId = searchParams.get("id") ?? "";
 
@@ -153,21 +151,10 @@ function LiveContent() {
       </Link>
 
       {/* ヘッダー */}
-      <div
-        className={cn(
-          "rounded-2xl p-4 text-white shadow-sm",
-          isCompleted
-            ? won
-              ? "bg-gradient-to-r from-attend to-green-600"
-              : lost
-                ? "bg-gradient-to-r from-red-500 to-rose-600"
-                : "bg-gradient-to-r from-gray-500 to-gray-600"
-            : "bg-gradient-hero"
-        )}
-      >
+      <div className="bg-gradient-hero rounded-2xl p-4 text-white shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[11px] opacity-80 font-bold">
+            <p className="text-[11px] text-primary-100 font-bold">
               {isCompleted ? "試合終了" : "試合中"}
             </p>
             <p className="text-[13px] font-bold mt-0.5">
@@ -179,8 +166,11 @@ function LiveContent() {
               {scorebook.totalScoreUs} - {scorebook.totalScoreThem}
             </div>
             {isCompleted && (
-              <span className="text-[11px] font-bold opacity-90">
-                {won ? "🎉 勝利" : lost ? "😤 惜敗" : "🤝 引き分け"}
+              <span className={cn(
+                "inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full mt-1",
+                won ? "bg-white/20" : lost ? "bg-white/20" : "bg-white/20"
+              )}>
+                {won ? "勝利" : lost ? "惜敗" : "引き分け"}
               </span>
             )}
           </div>
@@ -192,19 +182,19 @@ function LiveContent() {
         <div className="overflow-x-auto">
           <table className="w-full text-center">
             <thead>
-              <tr className="bg-gray-50 border-b border-border">
-                <th className="text-[10px] font-black text-muted py-2 px-2 text-left sticky left-0 bg-gray-50 z-10 min-w-[64px]">
+              <tr className="bg-primary-50 border-b border-border">
+                <th className="text-[10px] font-black text-primary py-2 px-2 text-left sticky left-0 bg-primary-50 z-10 min-w-[64px]">
                   チーム
                 </th>
                 {innings.map((inn) => (
                   <th
                     key={inn}
-                    className="text-[10px] font-black text-muted py-2 px-1 min-w-[32px]"
+                    className="text-[10px] font-black text-primary py-2 px-1 min-w-[32px]"
                   >
                     {inn}
                   </th>
                 ))}
-                <th className="text-[10px] font-black text-primary py-2 px-2 min-w-[36px] border-l border-border">
+                <th className="text-[10px] font-black text-primary py-2 px-2 min-w-[36px] border-l border-primary/20">
                   計
                 </th>
               </tr>
@@ -229,18 +219,18 @@ function LiveContent() {
                         <div className="flex flex-col items-center gap-0.5">
                           <button
                             onClick={() => updateScore(inn, isUs, 1)}
-                            className="w-6 h-5 rounded bg-surface-variant flex items-center justify-center active:scale-90 transition-transform"
+                            className="w-6 h-5 rounded bg-primary-50 flex items-center justify-center active:scale-90 transition-transform"
                           >
-                            <Plus className="w-2.5 h-2.5 text-muted" />
+                            <Plus className="w-2.5 h-2.5 text-primary" />
                           </button>
                           <span className="text-[14px] font-black min-w-[20px]">
                             {score !== undefined ? score : "-"}
                           </span>
                           <button
                             onClick={() => updateScore(inn, isUs, -1)}
-                            className="w-6 h-5 rounded bg-surface-variant flex items-center justify-center active:scale-90 transition-transform"
+                            className="w-6 h-5 rounded bg-primary-50 flex items-center justify-center active:scale-90 transition-transform"
                           >
-                            <Minus className="w-2.5 h-2.5 text-muted" />
+                            <Minus className="w-2.5 h-2.5 text-primary" />
                           </button>
                         </div>
                       ) : (
@@ -251,7 +241,7 @@ function LiveContent() {
                     </td>
                   );
                 })}
-                <td className="text-[16px] font-black py-2.5 px-2 border-l border-border text-primary">
+                <td className="text-[16px] font-black py-2.5 px-2 border-l border-primary/20 text-primary">
                   {scorebook.isHome
                     ? scorebook.totalScoreThem
                     : scorebook.totalScoreUs}
@@ -259,7 +249,7 @@ function LiveContent() {
               </tr>
               {/* 自チーム */}
               <tr>
-                <td className="text-[11px] font-bold py-2.5 px-2 text-left sticky left-0 bg-surface z-10">
+                <td className="text-[11px] font-bold py-2.5 px-2 text-left sticky left-0 bg-surface z-10 text-primary">
                   {scorebook.isHome
                     ? scorebook.ourTeamName
                     : scorebook.opponent}
@@ -276,29 +266,29 @@ function LiveContent() {
                         <div className="flex flex-col items-center gap-0.5">
                           <button
                             onClick={() => updateScore(inn, isUs, 1)}
-                            className="w-6 h-5 rounded bg-surface-variant flex items-center justify-center active:scale-90 transition-transform"
+                            className="w-6 h-5 rounded bg-primary-50 flex items-center justify-center active:scale-90 transition-transform"
                           >
-                            <Plus className="w-2.5 h-2.5 text-muted" />
+                            <Plus className="w-2.5 h-2.5 text-primary" />
                           </button>
                           <span className="text-[14px] font-black min-w-[20px]">
                             {score !== undefined ? score : "-"}
                           </span>
                           <button
                             onClick={() => updateScore(inn, isUs, -1)}
-                            className="w-6 h-5 rounded bg-surface-variant flex items-center justify-center active:scale-90 transition-transform"
+                            className="w-6 h-5 rounded bg-primary-50 flex items-center justify-center active:scale-90 transition-transform"
                           >
-                            <Minus className="w-2.5 h-2.5 text-muted" />
+                            <Minus className="w-2.5 h-2.5 text-primary" />
                           </button>
                         </div>
                       ) : (
-                        <span className="text-[14px] font-black">
+                        <span className="text-[14px] font-black text-primary">
                           {score !== undefined ? score : "-"}
                         </span>
                       )}
                     </td>
                   );
                 })}
-                <td className="text-[16px] font-black py-2.5 px-2 border-l border-border text-primary">
+                <td className="text-[16px] font-black py-2.5 px-2 border-l border-primary/20 text-primary">
                   {scorebook.isHome
                     ? scorebook.totalScoreUs
                     : scorebook.totalScoreThem}
@@ -311,8 +301,8 @@ function LiveContent() {
 
       {/* ラインナップ & 打席結果 */}
       <div className="bg-surface rounded-2xl border border-border shadow-sm overflow-hidden">
-        <div className="px-3 py-2.5 border-b border-border bg-gray-50">
-          <h2 className="text-[13px] font-black">打順・成績</h2>
+        <div className="px-3 py-2.5 border-b border-border bg-primary-50">
+          <h2 className="text-[13px] font-black text-primary">打順・成績</h2>
         </div>
         <div className="divide-y divide-border/50">
           {lineup.map((entry) => {
@@ -329,11 +319,11 @@ function LiveContent() {
             return (
               <div key={entry.id} className="px-3 py-2.5">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <span className="w-5 h-5 rounded bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black shrink-0">
+                  <span className="w-5 h-5 rounded bg-primary text-white flex items-center justify-center text-[10px] font-black shrink-0">
                     {entry.battingOrder}
                   </span>
                   {entry.position && (
-                    <span className="text-[10px] font-bold text-muted bg-surface-variant px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-bold text-primary bg-primary-50 px-1.5 py-0.5 rounded">
                       {POSITIONS[entry.position]?.short}
                     </span>
                   )}
@@ -395,7 +385,7 @@ function LiveContent() {
         <button
           onClick={handleEndGame}
           disabled={saving}
-          className="w-full py-3 rounded-xl bg-gray-800 text-white font-black text-[14px] shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-xl bg-primary-dark text-white font-black text-[14px] shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2"
         >
           <Trophy className="w-4 h-4" />
           試合終了
@@ -404,7 +394,7 @@ function LiveContent() {
         <button
           onClick={handleReopenGame}
           disabled={saving}
-          className="w-full py-3 rounded-xl bg-surface border-2 border-border text-muted font-bold text-[13px] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          className="w-full py-3 rounded-xl bg-surface border-2 border-primary/20 text-primary font-bold text-[13px] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
         >
           <RotateCcw className="w-4 h-4" />
           試合を再開する
@@ -478,7 +468,7 @@ function AtBatModal({
           </h3>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-surface-variant flex items-center justify-center text-muted active:scale-90 transition-transform"
+            className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center text-primary active:scale-90 transition-transform"
           >
             ×
           </button>
@@ -509,25 +499,25 @@ function AtBatModal({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setRbi(Math.max(0, rbi - 1))}
-              className="w-8 h-8 rounded-lg bg-surface-variant flex items-center justify-center active:scale-90 transition-transform"
+              className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center active:scale-90 transition-transform"
             >
-              <Minus className="w-4 h-4 text-muted" />
+              <Minus className="w-4 h-4 text-primary" />
             </button>
             <span className="text-[18px] font-black w-8 text-center">
               {rbi}
             </span>
             <button
               onClick={() => setRbi(rbi + 1)}
-              className="w-8 h-8 rounded-lg bg-surface-variant flex items-center justify-center active:scale-90 transition-transform"
+              className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center active:scale-90 transition-transform"
             >
-              <Plus className="w-4 h-4 text-muted" />
+              <Plus className="w-4 h-4 text-primary" />
             </button>
           </div>
         </div>
 
         <div className="space-y-3">
           <div>
-            <p className="text-[11px] font-bold text-blue-600 mb-1.5">
+            <p className="text-[11px] font-bold text-primary mb-1.5">
               ヒット
             </p>
             <div className="grid grid-cols-4 gap-1.5">
@@ -538,7 +528,7 @@ function AtBatModal({
                     key={r}
                     onClick={() => onSubmit(r, rbi)}
                     disabled={saving}
-                    className="py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-[12px] font-bold active:scale-95 transition-all"
+                    className="py-2.5 rounded-xl bg-primary-50 border border-primary/20 text-primary text-[12px] font-bold active:scale-95 transition-all"
                   >
                     {info.label}
                   </button>
@@ -548,7 +538,7 @@ function AtBatModal({
           </div>
 
           <div>
-            <p className="text-[11px] font-bold text-gray-500 mb-1.5">
+            <p className="text-[11px] font-bold text-muted mb-1.5">
               アウト
             </p>
             <div className="grid grid-cols-4 gap-1.5">
@@ -569,7 +559,7 @@ function AtBatModal({
           </div>
 
           <div>
-            <p className="text-[11px] font-bold text-green-600 mb-1.5">
+            <p className="text-[11px] font-bold text-primary-light mb-1.5">
               その他
             </p>
             <div className="grid grid-cols-4 gap-1.5">
@@ -580,7 +570,7 @@ function AtBatModal({
                     key={r}
                     onClick={() => onSubmit(r, rbi)}
                     disabled={saving}
-                    className="py-2.5 rounded-xl bg-green-50 border border-green-200 text-green-700 text-[12px] font-bold active:scale-95 transition-all"
+                    className="py-2.5 rounded-xl bg-surface-variant border border-border text-foreground text-[12px] font-bold active:scale-95 transition-all"
                   >
                     {info.label}
                   </button>
