@@ -75,5 +75,5 @@ export const AT_BAT_RESULTS: Record<AtBatResult, { label: string; short: string;
   flyout: { label: "フライ", short: "飛", color: "text-gray-500" },
   sacrifice: { label: "犠打", short: "犠", color: "text-amber-600" },
   error: { label: "エラー", short: "E", color: "text-orange-600" },
-  fielders_choice: { label: "野選", short: "野", color: "text-gray-600" },
+  fielders_choice: { label: "FC", short: "FC", color: "text-gray-600" },
 };
