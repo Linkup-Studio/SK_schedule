@@ -51,18 +51,26 @@ export default function AdminMenuPage() {
     setLoadingAnnouncements(false);
   }
 
-  const updateCount = (grade: number, delta: number) => {
-    setCounts(prev => {
-      const next = { ...prev, [grade]: Math.max(0, (prev[grade] ?? 0) + delta) };
-      // Supabase & localStorageの両方に保存（localStorageは後方互換性のため）
-      const stringKeyed: Record<string, number> = {};
-      for (const [k, v] of Object.entries(next)) {
-        stringKeyed[String(k)] = v;
+  const updateCount = async (grade: number, delta: number) => {
+    const next = { ...counts, [grade]: Math.max(0, (counts[grade] ?? 0) + delta) };
+    setCounts(next);
+
+    const stringKeyed: Record<string, number> = {};
+    for (const [k, v] of Object.entries(next)) {
+      stringKeyed[String(k)] = v;
+    }
+    const success = await updatePlayerCounts(teamSlug, stringKeyed);
+    if (!success) {
+      alert("選手人数の保存に失敗しました。ページを再読み込みしてお試しください。");
+      const saved = await fetchPlayerCountsByGrade(teamSlug);
+      if (Object.keys(saved).length > 0) {
+        const parsed: Record<number, number> = {};
+        for (const [k, v] of Object.entries(saved)) {
+          parsed[Number(k)] = v;
+        }
+        setCounts(prev => ({ ...prev, ...parsed }));
       }
-      updatePlayerCounts(teamSlug, stringKeyed);
-      localStorage.setItem(`${teamSlug}_player_counts`, JSON.stringify(next));
-      return next;
-    });
+    }
   };
 
   const handleDeleteAnnouncement = async (id: string) => {
