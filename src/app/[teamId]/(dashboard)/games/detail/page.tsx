@@ -36,6 +36,120 @@ const safeFormat = (dateValue: string | Date | null | undefined, fmt: string) =>
   try { return format(d, fmt, { locale: ja }); } catch { return "（形式エラー）"; }
 };
 
+const STATUS_OPTIONS = [
+  { status: "attend" as AttendanceStatusValue, icon: "○", label: "参加", activeClass: "bg-attend text-white shadow-attend/30 border-attend" },
+  { status: "absent" as AttendanceStatusValue, icon: "×", label: "欠席", activeClass: "bg-absent text-white shadow-absent/30 border-absent" },
+  { status: "undecided" as AttendanceStatusValue, icon: "△", label: "未定", activeClass: "bg-undecided text-white shadow-undecided/30 border-undecided" },
+] as const;
+
+function getOverallStatus(morning: AttendanceStatusValue, afternoon: AttendanceStatusValue): AttendanceStatusValue {
+  if (morning === "attend" && afternoon === "attend") return "attend";
+  if (morning === "absent" && afternoon === "absent") return "absent";
+  return "undecided";
+}
+
+function getPeriodSummary<T extends { status: AttendanceStatusValue; morningStatus?: AttendanceStatusValue; afternoonStatus?: AttendanceStatusValue }>(
+  rows: T[],
+  period: "morning" | "afternoon",
+  total?: number
+) {
+  const key = period === "morning" ? "morningStatus" : "afternoonStatus";
+  const attend = rows.filter((a) => (a[key] ?? a.status) === "attend").length;
+  const absent = rows.filter((a) => (a[key] ?? a.status) === "absent").length;
+  const undecided = rows.filter((a) => (a[key] ?? a.status) === "undecided").length;
+  const noAnswer = total === undefined ? 0 : Math.max(0, total - attend - absent - undecided);
+  return { attend, absent, undecided, noAnswer };
+}
+
+function PeriodStatusPicker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: AttendanceStatusValue | null;
+  onChange: (status: AttendanceStatusValue) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] font-black text-muted ml-1">{label}</p>
+      <div className="grid grid-cols-3 gap-2">
+        {STATUS_OPTIONS.map((config) => (
+          <button
+            key={config.status}
+            type="button"
+            onClick={() => onChange(config.status)}
+            className={cn(
+              "flex flex-col items-center justify-center py-3.5 px-2 rounded-xl border-2 font-bold transition-all shadow-sm active:scale-95 outline-none touch-active",
+              value === config.status
+                ? cn(config.activeClass, "scale-[1.02] shadow-md")
+                : "border-border bg-white text-muted hover:bg-surface-variant active:bg-border"
+            )}
+          >
+            <span className="text-2xl font-black">{config.icon}</span>
+            <span className="text-[10px] mt-0.5">{config.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PeriodSummaryRows({
+  morning,
+  afternoon,
+  showNoAnswer = true,
+}: {
+  morning: { attend: number; absent: number; undecided: number; noAnswer: number };
+  afternoon: { attend: number; absent: number; undecided: number; noAnswer: number };
+  showNoAnswer?: boolean;
+}) {
+  const rows = [
+    { label: "午前", summary: morning },
+    { label: "午後", summary: afternoon },
+  ];
+
+  return (
+    <div className="space-y-2">
+      {rows.map(({ label, summary }) => (
+        <div key={label} className="grid grid-cols-[42px_1fr] gap-2 items-center">
+          <span className="text-[11px] font-black text-muted">{label}</span>
+          <div className={cn("grid gap-2", showNoAnswer ? "grid-cols-4" : "grid-cols-3")}>
+            <StatBox label="参加" value={summary.attend} className="bg-attend/10 text-attend border-attend/20" />
+            <StatBox label="欠席" value={summary.absent} className="bg-absent/10 text-absent border-absent/20" />
+            <StatBox label="未定" value={summary.undecided} className="bg-undecided/10 text-undecided border-undecided/20" />
+            {showNoAnswer && <StatBox label="未回答" value={summary.noAnswer} className="bg-gray-100 text-muted border-gray-200" />}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatBox({ label, value, className }: { label: string; value: number; className: string }) {
+  return (
+    <div className={cn("rounded-lg py-2 text-center border", className)}>
+      <span className="text-[10px] font-bold block mb-0.5">{label}</span>
+      <span className="text-[16px] font-black">{value}</span>
+    </div>
+  );
+}
+
+function PeriodStatusText({
+  morning,
+  afternoon,
+}: {
+  morning: AttendanceStatusValue;
+  afternoon: AttendanceStatusValue;
+}) {
+  const icon = (status: AttendanceStatusValue) => STATUS_OPTIONS.find((s) => s.status === status)?.icon ?? "";
+  return (
+    <span className="text-[10px] font-bold text-muted shrink-0">
+      午前 {icon(morning)} / 午後 {icon(afternoon)}
+    </span>
+  );
+}
+
 function GameDetailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -52,10 +166,12 @@ function GameDetailContent() {
   const [submitting, setSubmitting] = useState(false);
   const [staffSubmitting, setStaffSubmitting] = useState(false);
   const [playerName, setPlayerName] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<AttendanceStatusValue | null>(null);
+  const [morningStatus, setMorningStatus] = useState<AttendanceStatusValue | null>(null);
+  const [afternoonStatus, setAfternoonStatus] = useState<AttendanceStatusValue | null>(null);
   const [reason, setReason] = useState("");
   const [staffName, setStaffName] = useState("");
-  const [selectedStaffStatus, setSelectedStaffStatus] = useState<AttendanceStatusValue | null>(null);
+  const [staffMorningStatus, setStaffMorningStatus] = useState<AttendanceStatusValue | null>(null);
+  const [staffAfternoonStatus, setStaffAfternoonStatus] = useState<AttendanceStatusValue | null>(null);
   const [staffNote, setStaffNote] = useState("");
   const [showCopied, setShowCopied] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -90,27 +206,38 @@ function GameDetailContent() {
 
   const handleFinalSubmit = async () => {
     if (!playerName.trim()) { alert("選手のお名前を入力してください"); return; }
-    if (!selectedStatus) { alert("出欠（○・×・△）のいずれかを選択してください"); return; }
+    if (!morningStatus || !afternoonStatus) { alert("午前・午後それぞれの出欠を選択してください"); return; }
+    const status = getOverallStatus(morningStatus, afternoonStatus);
     setSubmitting(true);
-    const result = await upsertAttendance(teamSlug, { gameId: id, playerName: playerName.trim(), status: selectedStatus, reason: (selectedStatus === "absent" || selectedStatus === "undecided") ? reason : undefined });
+    const result = await upsertAttendance(teamSlug, {
+      gameId: id,
+      playerName: playerName.trim(),
+      status,
+      morningStatus,
+      afternoonStatus,
+      reason: (morningStatus !== "attend" || afternoonStatus !== "attend") ? reason : undefined,
+    });
     setSubmitting(false);
     if (result) {
       const fresh = await fetchAttendancesByGame(id);
       setAttendances(fresh);
       setSubmitSuccess(true);
       setTimeout(() => setSubmitSuccess(false), 3000);
-      setPlayerName(""); setSelectedStatus(null); setReason("");
+      setPlayerName(""); setMorningStatus(null); setAfternoonStatus(null); setReason("");
     } else { alert("送信に失敗しました。もう一度お試しください。"); }
   };
 
   const handleStaffSubmit = async () => {
     if (!staffName.trim()) { alert("スタッフのお名前を入力してください"); return; }
-    if (!selectedStaffStatus) { alert("出欠（○・×・△）のいずれかを選択してください"); return; }
+    if (!staffMorningStatus || !staffAfternoonStatus) { alert("午前・午後それぞれの出欠を選択してください"); return; }
+    const status = getOverallStatus(staffMorningStatus, staffAfternoonStatus);
     setStaffSubmitting(true);
     const result = await upsertStaffAttendance(teamSlug, {
       gameId: id,
       staffName: staffName.trim(),
-      status: selectedStaffStatus,
+      status,
+      morningStatus: staffMorningStatus,
+      afternoonStatus: staffAfternoonStatus,
       note: staffNote.trim() || undefined,
     });
     setStaffSubmitting(false);
@@ -120,7 +247,7 @@ function GameDetailContent() {
       if (isStaff) touchStaffMode(teamSlug);
       setStaffSubmitSuccess(true);
       setTimeout(() => setStaffSubmitSuccess(false), 3000);
-      setStaffName(""); setSelectedStaffStatus(null); setStaffNote("");
+      setStaffName(""); setStaffMorningStatus(null); setStaffAfternoonStatus(null); setStaffNote("");
     } else {
       alert("スタッフ出欠の送信に失敗しました。もう一度お試しください。");
     }
@@ -144,15 +271,12 @@ function GameDetailContent() {
   const isValidDate = !isNaN(dateStart.getTime());
   const isPast = isValidDate && dateStart < new Date();
   const daysUntil = isValidDate ? differenceInDays(dateStart, new Date()) : -1;
-  const attendCnt = attendances.filter((a) => a.status === "attend").length;
-  const absentCnt = attendances.filter((a) => a.status === "absent").length;
-  const undecidedCnt = attendances.filter((a) => a.status === "undecided").length;
   const totalPlayers = game.grades.reduce((sum, g) => sum + (gradeCounts[String(g)] ?? 0), 0);
-  const noAnswerCnt = Math.max(0, totalPlayers - attendCnt - absentCnt - undecidedCnt);
+  const playerMorningSummary = getPeriodSummary(attendances, "morning", totalPlayers);
+  const playerAfternoonSummary = getPeriodSummary(attendances, "afternoon", totalPlayers);
   const canViewStaff = isAdmin || isStaff;
-  const staffAttendCnt = staffAttendances.filter((a) => a.status === "attend").length;
-  const staffAbsentCnt = staffAttendances.filter((a) => a.status === "absent").length;
-  const staffUndecidedCnt = staffAttendances.filter((a) => a.status === "undecided").length;
+  const staffMorningSummary = getPeriodSummary(staffAttendances, "morning");
+  const staffAfternoonSummary = getPeriodSummary(staffAttendances, "afternoon");
 
   return (
     <div className="px-4 py-4 space-y-4 pb-20">
@@ -206,15 +330,14 @@ function GameDetailContent() {
           <div className="space-y-3">
             <div><label className="text-[11px] font-bold text-muted ml-1 mb-1 block">選手のお名前（必須）</label><input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="例: 佐藤 太郎" className="w-full bg-background border border-border px-4 py-3 rounded-xl text-[15px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" /></div>
             <div className="space-y-3">
-              <div className="grid grid-cols-3 gap-2">
-                {([
-                  { status: "attend" as AttendanceStatusValue, icon: "○", label: "参加", activeClass: "bg-attend text-white shadow-attend/30 border-attend" },
-                  { status: "absent" as AttendanceStatusValue, icon: "×", label: "欠席", activeClass: "bg-absent text-white shadow-absent/30 border-absent" },
-                  { status: "undecided" as AttendanceStatusValue, icon: "△", label: "未定", activeClass: "bg-undecided text-white shadow-undecided/30 border-undecided" },
-                ]).map((config) => (<button key={config.status} type="button" onClick={() => setSelectedStatus(config.status)} className={cn("flex flex-col items-center justify-center py-4 px-2 rounded-xl border-2 font-bold transition-all shadow-sm active:scale-95 outline-none touch-active", selectedStatus === config.status ? cn(config.activeClass, "scale-[1.02] shadow-md") : "border-border bg-white text-muted hover:bg-surface-variant active:bg-border")}><span className="text-2xl font-black">{config.icon}</span><span className="text-[10px] mt-0.5">{config.label}</span></button>))}
-              </div>
-              {selectedStatus === "absent" && (<div className="bg-red-50/50 border border-red-100 rounded-xl p-3 animate-fade-in-up"><label className="text-[10px] font-bold text-absent flex items-center gap-1 mb-1">欠席理由（任意）</label><input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="例: 塾のため" className="w-full px-3 py-2.5 rounded-xl border border-red-200 bg-white text-[13px] focus:outline-none focus:ring-2 focus:ring-absent/30 shadow-sm" /></div>)}
-              {selectedStatus === "undecided" && (<div className="bg-amber-50/50 border border-amber-100 rounded-xl p-3 animate-fade-in-up"><label className="text-[10px] font-bold text-undecided flex items-center gap-1 mb-1">未定の理由（任意）</label><input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="例: 体調次第で判断します" className="w-full px-3 py-2.5 rounded-xl border border-amber-200 bg-white text-[13px] focus:outline-none focus:ring-2 focus:ring-undecided/30 shadow-sm" /></div>)}
+              <PeriodStatusPicker label="午前" value={morningStatus} onChange={setMorningStatus} />
+              <PeriodStatusPicker label="午後" value={afternoonStatus} onChange={setAfternoonStatus} />
+              {(morningStatus && afternoonStatus && (morningStatus !== "attend" || afternoonStatus !== "attend")) && (
+                <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-3 animate-fade-in-up">
+                  <label className="text-[10px] font-bold text-undecided flex items-center gap-1 mb-1">理由・補足（任意）</label>
+                  <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="例: 午後は塾のため欠席" className="w-full px-3 py-2.5 rounded-xl border border-amber-200 bg-white text-[13px] focus:outline-none focus:ring-2 focus:ring-undecided/30 shadow-sm" />
+                </div>
+              )}
               <div className="bg-info/10 border border-info/20 rounded-xl px-3 py-2.5 text-center"><p className="text-[11px] font-bold text-info">🔄 同じお名前で再送信すると、回答を修正できます</p></div>
               <div className="pt-2"><button type="button" onClick={handleFinalSubmit} disabled={submitting} className={cn("w-full py-3.5 rounded-xl font-black text-[15px] shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 touch-active", submitting ? "bg-primary/50 text-white cursor-not-allowed" : "bg-primary text-white active:bg-primary-light active:scale-[0.98]")}>{submitting ? (<><Loader2 className="w-5 h-5 animate-spin" />送信中...</>) : (<><CheckCheck className="w-5 h-5" />この出欠を送信する</>)}</button></div>
             </div>
@@ -224,15 +347,23 @@ function GameDetailContent() {
 
       <div className="bg-surface rounded-2xl border border-border p-4 space-y-3 shadow-sm">
         <h2 className="font-black text-[15px] flex items-center gap-1.5"><Users className="w-4.5 h-4.5 text-primary" />回答済み一覧</h2>
-        <div className="flex gap-2 mb-3">
-          <div className="flex-1 bg-attend/10 text-attend border border-attend/20 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">参加</span><span className="text-[16px] font-black">{attendCnt}</span></div>
-          <div className="flex-1 bg-absent/10 text-absent border border-absent/20 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">欠席</span><span className="text-[16px] font-black">{absentCnt}</span></div>
-          <div className="flex-1 bg-undecided/10 text-undecided border border-undecided/20 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">未定</span><span className="text-[16px] font-black">{undecidedCnt}</span></div>
-          <div className="flex-1 bg-gray-100 text-muted border border-gray-200 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">未回答</span><span className="text-[16px] font-black">{noAnswerCnt}</span></div>
-        </div>
+        <PeriodSummaryRows morning={playerMorningSummary} afternoon={playerAfternoonSummary} />
         <div className="pt-2">
           <div className="divide-y divide-border/50 rounded-xl border border-border overflow-hidden">
-            {attendances.length > 0 ? attendances.map((att) => (<div key={att.id} className="flex items-center justify-between px-3 py-2.5 bg-white"><div className="flex items-center gap-2.5 min-w-0 flex-1"><p className="text-[13px] font-bold truncate flex-1">{att.userName}</p>{att.reason && <span className="text-[9px] text-error font-medium truncate max-w-[120px]">理由: {att.reason}</span>}</div><div className="shrink-0 ml-2 flex items-center gap-1.5"><AttendanceBadge status={att.status} />{isAdmin && <button onClick={async () => { if (!confirm(`${att.userName} の回答を削除しますか？`)) return; setAttendances(prev => prev.filter(a => a.id !== att.id)); const ok = await deleteAttendance(att.id); if (!ok) { alert("削除に失敗しました"); const fresh = await fetchAttendancesByGame(id); setAttendances(fresh); }}} className="w-6 h-6 flex items-center justify-center rounded-lg bg-error/10 text-error active:scale-90 transition-transform"><Trash2 className="w-3 h-3" /></button>}</div></div>)) : (<div className="p-4 text-center text-[12px] text-muted">まだ出欠の回答はありません</div>)}
+            {attendances.length > 0 ? attendances.map((att) => (
+              <div key={att.id} className="flex items-center justify-between px-3 py-2.5 bg-white">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-bold truncate">{att.userName}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <PeriodStatusText morning={att.morningStatus ?? att.status} afternoon={att.afternoonStatus ?? att.status} />
+                      {att.reason && <span className="text-[9px] text-error font-medium truncate max-w-[140px]">理由: {att.reason}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="shrink-0 ml-2 flex items-center gap-1.5"><AttendanceBadge status={att.status} />{isAdmin && <button onClick={async () => { if (!confirm(`${att.userName} の回答を削除しますか？`)) return; setAttendances(prev => prev.filter(a => a.id !== att.id)); const ok = await deleteAttendance(att.id); if (!ok) { alert("削除に失敗しました"); const fresh = await fetchAttendancesByGame(id); setAttendances(fresh); }}} className="w-6 h-6 flex items-center justify-center rounded-lg bg-error/10 text-error active:scale-90 transition-transform"><Trash2 className="w-3 h-3" /></button>}</div>
+              </div>
+            )) : (<div className="p-4 text-center text-[12px] text-muted">まだ出欠の回答はありません</div>)}
           </div>
         </div>
       </div>
@@ -245,19 +376,19 @@ function GameDetailContent() {
             <span className="text-[10px] font-black text-info bg-info/10 border border-info/20 px-2 py-1 rounded-lg">スタッフ限定</span>
           </div>
 
-          <div className="flex gap-2">
-            <div className="flex-1 bg-attend/10 text-attend border border-attend/20 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">参加</span><span className="text-[16px] font-black">{staffAttendCnt}</span></div>
-            <div className="flex-1 bg-absent/10 text-absent border border-absent/20 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">欠席</span><span className="text-[16px] font-black">{staffAbsentCnt}</span></div>
-            <div className="flex-1 bg-undecided/10 text-undecided border border-undecided/20 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">未定</span><span className="text-[16px] font-black">{staffUndecidedCnt}</span></div>
-            <div className="flex-1 bg-gray-100 text-muted border border-gray-200 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">回答済</span><span className="text-[16px] font-black">{staffAttendances.length}</span></div>
-          </div>
+          <PeriodSummaryRows morning={staffMorningSummary} afternoon={staffAfternoonSummary} showNoAnswer={false} />
 
           <div className="divide-y divide-border/50 rounded-xl border border-border overflow-hidden">
             {staffAttendances.length > 0 ? staffAttendances.map((att) => (
               <div key={att.id} className="flex items-center justify-between px-3 py-2.5 bg-white">
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <p className="text-[13px] font-bold truncate flex-1">{att.staffName}</p>
-                  {att.note && <span className="text-[9px] text-info font-medium truncate max-w-[120px]">メモ: {att.note}</span>}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-bold truncate">{att.staffName}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      <PeriodStatusText morning={att.morningStatus ?? att.status} afternoon={att.afternoonStatus ?? att.status} />
+                      {att.note && <span className="text-[9px] text-info font-medium truncate max-w-[140px]">メモ: {att.note}</span>}
+                    </div>
+                  </div>
                 </div>
                 <div className="shrink-0 ml-2 flex items-center gap-1.5">
                   <AttendanceBadge status={att.status} />
@@ -276,12 +407,9 @@ function GameDetailContent() {
                 <label className="text-[11px] font-bold text-muted ml-1 mb-1 block">スタッフのお名前（必須）</label>
                 <input type="text" value={staffName} onChange={(e) => setStaffName(e.target.value)} placeholder="例: 佐藤 コーチ" className="w-full bg-background border border-border px-4 py-3 rounded-xl text-[15px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" />
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                {([
-                  { status: "attend" as AttendanceStatusValue, icon: "○", label: "参加", activeClass: "bg-attend text-white shadow-attend/30 border-attend" },
-                  { status: "absent" as AttendanceStatusValue, icon: "×", label: "欠席", activeClass: "bg-absent text-white shadow-absent/30 border-absent" },
-                  { status: "undecided" as AttendanceStatusValue, icon: "△", label: "未定", activeClass: "bg-undecided text-white shadow-undecided/30 border-undecided" },
-                ]).map((config) => (<button key={config.status} type="button" onClick={() => setSelectedStaffStatus(config.status)} className={cn("flex flex-col items-center justify-center py-4 px-2 rounded-xl border-2 font-bold transition-all shadow-sm active:scale-95 outline-none touch-active", selectedStaffStatus === config.status ? cn(config.activeClass, "scale-[1.02] shadow-md") : "border-border bg-white text-muted hover:bg-surface-variant active:bg-border")}><span className="text-2xl font-black">{config.icon}</span><span className="text-[10px] mt-0.5">{config.label}</span></button>))}
+              <div className="space-y-3">
+                <PeriodStatusPicker label="午前" value={staffMorningStatus} onChange={setStaffMorningStatus} />
+                <PeriodStatusPicker label="午後" value={staffAfternoonStatus} onChange={setStaffAfternoonStatus} />
               </div>
               <div>
                 <label className="text-[11px] font-bold text-muted ml-1 mb-1 block">スタッフメモ（任意）</label>

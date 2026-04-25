@@ -41,6 +41,8 @@ export interface Attendance {
   userGrade?: GradeValue;
   answeredBy: string;
   status: AttendanceStatusValue;
+  morningStatus?: AttendanceStatusValue;
+  afternoonStatus?: AttendanceStatusValue;
   reason?: string;
   answeredAt: string;
 }
@@ -51,6 +53,8 @@ export interface StaffAttendance {
   gameId: string;
   staffName: string;
   status: AttendanceStatusValue;
+  morningStatus?: AttendanceStatusValue;
+  afternoonStatus?: AttendanceStatusValue;
   note?: string;
   answeredAt: string;
 }

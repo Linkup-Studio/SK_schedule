@@ -29,24 +29,30 @@ function toGame(row: Record<string, any>): Game {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toAttendance(row: Record<string, any>): Attendance {
+  const status = row.status as AttendanceStatusValue;
   return {
     id: row.id,
     gameId: row.game_id,
     userId: row.player_name,
     userName: row.player_name,
     answeredBy: row.player_name,
-    status: row.status as AttendanceStatusValue,
+    status,
+    morningStatus: (row.morning_status ?? status) as AttendanceStatusValue,
+    afternoonStatus: (row.afternoon_status ?? status) as AttendanceStatusValue,
     reason: row.reason ?? undefined,
     answeredAt: row.created_at,
   };
 }
 
 function toStaffAttendance(row: Record<string, unknown>): StaffAttendance {
+  const status = row.status as AttendanceStatusValue;
   return {
     id: String(row.id),
     gameId: String(row.game_id),
     staffName: String(row.staff_name),
-    status: row.status as AttendanceStatusValue,
+    status,
+    morningStatus: (row.morning_status ?? status) as AttendanceStatusValue,
+    afternoonStatus: (row.afternoon_status ?? status) as AttendanceStatusValue,
     note: typeof row.note === "string" ? row.note : undefined,
     answeredAt: String(row.created_at),
   };
@@ -276,6 +282,8 @@ export async function upsertAttendance(teamSlug: string, input: {
   gameId: string;
   playerName: string;
   status: "attend" | "absent" | "undecided";
+  morningStatus?: "attend" | "absent" | "undecided";
+  afternoonStatus?: "attend" | "absent" | "undecided";
   reason?: string;
 }): Promise<Attendance | null> {
   const teamId = await resolveTeamId(teamSlug);
@@ -289,6 +297,8 @@ export async function upsertAttendance(teamSlug: string, input: {
         game_id: input.gameId,
         player_name: input.playerName,
         status: input.status,
+        morning_status: input.morningStatus ?? input.status,
+        afternoon_status: input.afternoonStatus ?? input.status,
         reason: input.reason || null,
       },
       { onConflict: "game_id,player_name" }
@@ -334,6 +344,8 @@ export async function upsertStaffAttendance(teamSlug: string, input: {
   gameId: string;
   staffName: string;
   status: "attend" | "absent" | "undecided";
+  morningStatus?: "attend" | "absent" | "undecided";
+  afternoonStatus?: "attend" | "absent" | "undecided";
   note?: string;
 }): Promise<StaffAttendance | null> {
   const teamId = await resolveTeamId(teamSlug);
@@ -347,6 +359,8 @@ export async function upsertStaffAttendance(teamSlug: string, input: {
         game_id: input.gameId,
         staff_name: input.staffName,
         status: input.status,
+        morning_status: input.morningStatus ?? input.status,
+        afternoon_status: input.afternoonStatus ?? input.status,
         note: input.note || null,
       },
       { onConflict: "game_id,staff_name" }
