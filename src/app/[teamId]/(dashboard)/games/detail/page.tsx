@@ -21,7 +21,7 @@ import {
   deleteAttendance,
   fetchPlayerCountsByGrade,
 } from "@/lib/supabase-data";
-import { GameTypeBadge, GradeBadge, AttendanceBadge } from "@/components/common/badges";
+import { GameTypeBadge, GradeBadge } from "@/components/common/badges";
 import type { AttendanceStatusValue } from "@/lib/constants";
 import type { Game, Attendance } from "@/lib/types";
 import { Suspense } from "react";
@@ -141,11 +141,26 @@ function PeriodStatusText({
   morning: AttendanceStatusValue;
   afternoon: AttendanceStatusValue;
 }) {
-  const icon = (status: AttendanceStatusValue) => STATUS_OPTIONS.find((s) => s.status === status)?.icon ?? "";
+  const colorClasses = {
+    attend: "bg-attend/10 text-attend border-attend/30",
+    absent: "bg-absent/10 text-absent border-absent/30",
+    undecided: "bg-undecided/10 text-undecided border-undecided/30",
+  } satisfies Record<AttendanceStatusValue, string>;
+  const pill = (label: string, status: AttendanceStatusValue) => {
+    const config = STATUS_OPTIONS.find((s) => s.status === status);
+    return (
+      <span className={cn("inline-flex min-w-[76px] items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[13px] font-black", colorClasses[status])}>
+        <span>{label}</span>
+        <span className="text-[18px] leading-none">{config?.icon}</span>
+      </span>
+    );
+  };
+
   return (
-    <span className="text-[10px] font-bold text-muted shrink-0">
-      午前 {icon(morning)} / 午後 {icon(afternoon)}
-    </span>
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {pill("午前", morning)}
+      {pill("午後", afternoon)}
+    </div>
   );
 }
 
@@ -326,17 +341,17 @@ function GameDetailContent() {
         <div className="pt-2">
           <div className="divide-y divide-border/50 rounded-xl border border-border overflow-hidden">
             {attendances.length > 0 ? attendances.map((att) => (
-              <div key={att.id} className="flex items-center justify-between px-3 py-2.5 bg-white">
-                <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                  <div className="min-w-0 flex-1">
+              <div key={att.id} className="px-3 py-3 bg-white">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1 space-y-1.5">
                     <p className="text-[13px] font-bold truncate">{att.userName}</p>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      <PeriodStatusText morning={att.morningStatus ?? att.status} afternoon={att.afternoonStatus ?? att.status} />
-                      {att.reason && <span className="text-[9px] text-error font-medium truncate max-w-[140px]">理由: {att.reason}</span>}
-                    </div>
+                    <PeriodStatusText morning={att.morningStatus ?? att.status} afternoon={att.afternoonStatus ?? att.status} />
+                    {att.reason && <p className="text-[9px] text-error font-medium truncate max-w-[180px]">理由: {att.reason}</p>}
+                  </div>
+                  <div className="shrink-0 flex items-center gap-1.5">
+                    {isAdmin && <button onClick={async () => { if (!confirm(`${att.userName} の回答を削除しますか？`)) return; setAttendances(prev => prev.filter(a => a.id !== att.id)); const ok = await deleteAttendance(att.id); if (!ok) { alert("削除に失敗しました"); const fresh = await fetchAttendancesByGame(id); setAttendances(fresh); }}} className="w-6 h-6 flex items-center justify-center rounded-lg bg-error/10 text-error active:scale-90 transition-transform"><Trash2 className="w-3 h-3" /></button>}
                   </div>
                 </div>
-                <div className="shrink-0 ml-2 flex items-center gap-1.5"><AttendanceBadge status={att.status} />{isAdmin && <button onClick={async () => { if (!confirm(`${att.userName} の回答を削除しますか？`)) return; setAttendances(prev => prev.filter(a => a.id !== att.id)); const ok = await deleteAttendance(att.id); if (!ok) { alert("削除に失敗しました"); const fresh = await fetchAttendancesByGame(id); setAttendances(fresh); }}} className="w-6 h-6 flex items-center justify-center rounded-lg bg-error/10 text-error active:scale-90 transition-transform"><Trash2 className="w-3 h-3" /></button>}</div>
               </div>
             )) : (<div className="p-4 text-center text-[12px] text-muted">まだ出欠の回答はありません</div>)}
           </div>
