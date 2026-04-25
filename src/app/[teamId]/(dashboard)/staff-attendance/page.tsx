@@ -16,7 +16,7 @@ import {
   fetchStaffAttendancesByDate,
   upsertStaffAttendance,
 } from "@/lib/supabase-data";
-import { GameTypeBadge, GradeBadge, AttendanceBadge } from "@/components/common/badges";
+import { GameTypeBadge, GradeBadge } from "@/components/common/badges";
 import type { AttendanceStatusValue } from "@/lib/constants";
 import type { Game, StaffAttendance } from "@/lib/types";
 
@@ -70,12 +70,28 @@ function PeriodStatusPicker({
   );
 }
 
-function PeriodStatusText({ morning, afternoon }: { morning: AttendanceStatusValue; afternoon: AttendanceStatusValue }) {
-  const icon = (status: AttendanceStatusValue) => STATUS_OPTIONS.find((s) => s.status === status)?.icon ?? "";
+function PeriodStatusPill({ label, status }: { label: string; status: AttendanceStatusValue }) {
+  const config = STATUS_OPTIONS.find((s) => s.status === status);
+  const colorClasses = {
+    attend: "bg-attend/10 text-attend border-attend/30",
+    absent: "bg-absent/10 text-absent border-absent/30",
+    undecided: "bg-undecided/10 text-undecided border-undecided/30",
+  } satisfies Record<AttendanceStatusValue, string>;
+
   return (
-    <span className="text-[10px] font-bold text-muted shrink-0">
-      午前 {icon(morning)} / 午後 {icon(afternoon)}
+    <span className={cn("inline-flex min-w-[76px] items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[13px] font-black", colorClasses[status])}>
+      <span>{label}</span>
+      <span className="text-[18px] leading-none">{config?.icon}</span>
     </span>
+  );
+}
+
+function PeriodStatusText({ morning, afternoon }: { morning: AttendanceStatusValue; afternoon: AttendanceStatusValue }) {
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap">
+      <PeriodStatusPill label="午前" status={morning} />
+      <PeriodStatusPill label="午後" status={afternoon} />
+    </div>
   );
 }
 
@@ -224,30 +240,29 @@ function StaffAttendanceContent() {
         <h2 className="font-black text-[15px] flex items-center gap-1.5"><Users className="w-4.5 h-4.5 text-info" />回答済みスタッフ</h2>
         <div className="divide-y divide-border/50 rounded-xl border border-border overflow-hidden">
           {staffAttendances.length > 0 ? staffAttendances.map((att) => (
-            <div key={att.id} className="flex items-center justify-between px-3 py-2.5 bg-white">
-              <div className="min-w-0 flex-1">
-                <p className="text-[13px] font-bold truncate">{att.staffName}</p>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <div key={att.id} className="px-3 py-3 bg-white">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <p className="text-[13px] font-bold truncate">{att.staffName}</p>
                   <PeriodStatusText morning={att.morningStatus ?? att.status} afternoon={att.afternoonStatus ?? att.status} />
-                  {att.note && <span className="text-[9px] text-info font-medium truncate max-w-[140px]">メモ: {att.note}</span>}
+                  {att.note && <p className="text-[9px] text-info font-medium truncate max-w-[180px]">メモ: {att.note}</p>}
                 </div>
-              </div>
-              <div className="shrink-0 ml-2 flex items-center gap-1.5">
-                <AttendanceBadge status={att.status} />
-                {isAdmin && (
-                  <button onClick={async () => {
-                    if (!confirm(`${att.staffName} のスタッフ回答を削除しますか？`)) return;
-                    setStaffAttendances((prev) => prev.filter((a) => a.id !== att.id));
-                    const ok = await deleteStaffAttendance(att.id);
-                    if (!ok) {
-                      alert("削除に失敗しました");
-                      const fresh = await fetchStaffAttendancesByDate(teamSlug, attendanceDate);
-                      setStaffAttendances(fresh);
-                    }
-                  }} className="w-6 h-6 flex items-center justify-center rounded-lg bg-error/10 text-error active:scale-90 transition-transform">
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                )}
+                <div className="shrink-0 flex items-center gap-1.5">
+                  {isAdmin && (
+                    <button onClick={async () => {
+                      if (!confirm(`${att.staffName} のスタッフ回答を削除しますか？`)) return;
+                      setStaffAttendances((prev) => prev.filter((a) => a.id !== att.id));
+                      const ok = await deleteStaffAttendance(att.id);
+                      if (!ok) {
+                        alert("削除に失敗しました");
+                        const fresh = await fetchStaffAttendancesByDate(teamSlug, attendanceDate);
+                        setStaffAttendances(fresh);
+                      }
+                    }} className="w-6 h-6 flex items-center justify-center rounded-lg bg-error/10 text-error active:scale-90 transition-transform">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )) : (
