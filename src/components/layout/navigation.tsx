@@ -6,7 +6,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
-import { Home, Calendar, Megaphone, Plus, LogOut } from "lucide-react";
+import { Home, Calendar, Megaphone, Plus, LogOut, Settings } from "lucide-react";
 
 export function Header() {
   const { team, teamSlug } = useTeam();
@@ -153,6 +153,7 @@ export function BottomNav() {
     { href: teamLink("/dashboard"), icon: Home, label: "ホーム" },
     { href: teamLink("/calendar"), icon: Calendar, label: "予定" },
     { href: teamLink("/announcements"), icon: Megaphone, label: "連絡" },
+    { href: teamLink("/settings"), icon: Settings, label: "設定" },
     ...(isAdmin ? [{ href: teamLink("/games/new"), icon: Plus, label: "予定登録", isAction: true }] : []),
   ];
 
