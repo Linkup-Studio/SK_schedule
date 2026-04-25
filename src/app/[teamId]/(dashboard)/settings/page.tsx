@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Settings, ChevronRight, Users, CheckCircle2 } from "lucide-react";
 import { useTeam } from "@/components/team/team-provider";
+import { useTeamLink } from "@/hooks/use-team-link";
 import { activateStaffMode, deactivateStaffMode, isStaffModeActive } from "@/lib/staff-auth";
 
 export default function SettingsPage() {
   const { team, teamSlug } = useTeam();
+  const teamLink = useTeamLink();
   const [isStaff, setIsStaff] = useState(false);
   const [staffPin, setStaffPin] = useState("");
 
@@ -77,14 +80,14 @@ export default function SettingsPage() {
       </div>
 
       <div className="bg-surface rounded-2xl border border-border divide-y divide-border/50 shadow-sm overflow-hidden">
-        <button className="w-full flex items-center justify-between px-4 py-3.5 active:bg-surface-variant transition-colors text-left">
+        <Link href={teamLink("/settings/about")} className="w-full flex items-center justify-between px-4 py-3.5 active:bg-surface-variant transition-colors text-left">
           <span className="text-[13px] font-bold">アプリについて</span>
           <ChevronRight className="w-4 h-4 text-muted" />
-        </button>
-        <button className="w-full flex items-center justify-between px-4 py-3.5 active:bg-surface-variant transition-colors text-left">
+        </Link>
+        <Link href={teamLink("/settings/guide")} className="w-full flex items-center justify-between px-4 py-3.5 active:bg-surface-variant transition-colors text-left">
           <span className="text-[13px] font-bold">使い方ガイド</span>
           <ChevronRight className="w-4 h-4 text-muted" />
-        </button>
+        </Link>
       </div>
     </div>
   );
