@@ -21,9 +21,9 @@ export default function AnnouncementsPage() {
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
-    setIsAdmin(localStorage.getItem(storageKey) === "true");
     async function load() {
       setLoading(true);
+      setIsAdmin(localStorage.getItem(storageKey) === "true");
       const data = await fetchAnnouncements(teamSlug);
       setAnnouncements(data);
       setLoading(false);

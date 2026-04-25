@@ -12,10 +12,21 @@ import {
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
-import { fetchGameById, fetchAttendancesByGame, upsertAttendance, deleteGame, deleteAttendance, fetchPlayerCountsByGrade } from "@/lib/supabase-data";
+import { isStaffModeActive, touchStaffMode } from "@/lib/staff-auth";
+import {
+  fetchGameById,
+  fetchAttendancesByGame,
+  upsertAttendance,
+  deleteGame,
+  deleteAttendance,
+  fetchPlayerCountsByGrade,
+  fetchStaffAttendancesByGame,
+  upsertStaffAttendance,
+  deleteStaffAttendance,
+} from "@/lib/supabase-data";
 import { GameTypeBadge, GradeBadge, AttendanceBadge } from "@/components/common/badges";
 import type { AttendanceStatusValue } from "@/lib/constants";
-import type { Game, Attendance } from "@/lib/types";
+import type { Game, Attendance, StaffAttendance } from "@/lib/types";
 import { Suspense } from "react";
 
 const safeFormat = (dateValue: string | Date | null | undefined, fmt: string) => {
@@ -36,26 +47,42 @@ function GameDetailContent() {
 
   const [game, setGame] = useState<Game | null>(null);
   const [attendances, setAttendances] = useState<Attendance[]>([]);
+  const [staffAttendances, setStaffAttendances] = useState<StaffAttendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [staffSubmitting, setStaffSubmitting] = useState(false);
   const [playerName, setPlayerName] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<AttendanceStatusValue | null>(null);
   const [reason, setReason] = useState("");
+  const [staffName, setStaffName] = useState("");
+  const [selectedStaffStatus, setSelectedStaffStatus] = useState<AttendanceStatusValue | null>(null);
+  const [staffNote, setStaffNote] = useState("");
   const [showCopied, setShowCopied] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [staffSubmitSuccess, setStaffSubmitSuccess] = useState(false);
   const [gradeCounts, setGradeCounts] = useState<Record<string, number>>({});
+  const [isStaff, setIsStaff] = useState(false);
 
   useEffect(() => {
-    setIsAdmin(localStorage.getItem(storageKey) === "true");
     if (!id) return;
     async function load() {
       setLoading(true);
-      const [gameData, attData, counts] = await Promise.all([
-        fetchGameById(id), fetchAttendancesByGame(id), fetchPlayerCountsByGrade(teamSlug),
+      const adminState = localStorage.getItem(storageKey) === "true";
+      const staffState = isStaffModeActive(teamSlug);
+      setIsAdmin(adminState);
+      setIsStaff(staffState);
+      const canViewStaff = adminState || staffState;
+      const [gameData, attData, counts, staffData] = await Promise.all([
+        fetchGameById(id),
+        fetchAttendancesByGame(id),
+        fetchPlayerCountsByGrade(teamSlug),
+        canViewStaff ? fetchStaffAttendancesByGame(id) : Promise.resolve([]),
       ]);
       setGame(gameData);
       setAttendances(attData);
+      setStaffAttendances(staffData);
       setGradeCounts(counts);
+      if (staffState) touchStaffMode(teamSlug);
       setLoading(false);
     }
     load();
@@ -74,6 +101,29 @@ function GameDetailContent() {
       setTimeout(() => setSubmitSuccess(false), 3000);
       setPlayerName(""); setSelectedStatus(null); setReason("");
     } else { alert("送信に失敗しました。もう一度お試しください。"); }
+  };
+
+  const handleStaffSubmit = async () => {
+    if (!staffName.trim()) { alert("スタッフのお名前を入力してください"); return; }
+    if (!selectedStaffStatus) { alert("出欠（○・×・△）のいずれかを選択してください"); return; }
+    setStaffSubmitting(true);
+    const result = await upsertStaffAttendance(teamSlug, {
+      gameId: id,
+      staffName: staffName.trim(),
+      status: selectedStaffStatus,
+      note: staffNote.trim() || undefined,
+    });
+    setStaffSubmitting(false);
+    if (result) {
+      const fresh = await fetchStaffAttendancesByGame(id);
+      setStaffAttendances(fresh);
+      if (isStaff) touchStaffMode(teamSlug);
+      setStaffSubmitSuccess(true);
+      setTimeout(() => setStaffSubmitSuccess(false), 3000);
+      setStaffName(""); setSelectedStaffStatus(null); setStaffNote("");
+    } else {
+      alert("スタッフ出欠の送信に失敗しました。もう一度お試しください。");
+    }
   };
 
   const handleCopyInfo = useCallback(() => {
@@ -99,6 +149,10 @@ function GameDetailContent() {
   const undecidedCnt = attendances.filter((a) => a.status === "undecided").length;
   const totalPlayers = game.grades.reduce((sum, g) => sum + (gradeCounts[String(g)] ?? 0), 0);
   const noAnswerCnt = Math.max(0, totalPlayers - attendCnt - absentCnt - undecidedCnt);
+  const canViewStaff = isAdmin || isStaff;
+  const staffAttendCnt = staffAttendances.filter((a) => a.status === "attend").length;
+  const staffAbsentCnt = staffAttendances.filter((a) => a.status === "absent").length;
+  const staffUndecidedCnt = staffAttendances.filter((a) => a.status === "undecided").length;
 
   return (
     <div className="px-4 py-4 space-y-4 pb-20">
@@ -182,6 +236,64 @@ function GameDetailContent() {
           </div>
         </div>
       </div>
+
+      {canViewStaff && (
+        <div className="bg-surface rounded-2xl border-2 border-info/20 p-4 space-y-4 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-info" />
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-black text-[15px] flex items-center gap-1.5"><Users className="w-4.5 h-4.5 text-info" />スタッフ出欠</h2>
+            <span className="text-[10px] font-black text-info bg-info/10 border border-info/20 px-2 py-1 rounded-lg">スタッフ限定</span>
+          </div>
+
+          <div className="flex gap-2">
+            <div className="flex-1 bg-attend/10 text-attend border border-attend/20 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">参加</span><span className="text-[16px] font-black">{staffAttendCnt}</span></div>
+            <div className="flex-1 bg-absent/10 text-absent border border-absent/20 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">欠席</span><span className="text-[16px] font-black">{staffAbsentCnt}</span></div>
+            <div className="flex-1 bg-undecided/10 text-undecided border border-undecided/20 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">未定</span><span className="text-[16px] font-black">{staffUndecidedCnt}</span></div>
+            <div className="flex-1 bg-gray-100 text-muted border border-gray-200 rounded-lg py-2 text-center"><span className="text-[10px] font-bold block mb-0.5">回答済</span><span className="text-[16px] font-black">{staffAttendances.length}</span></div>
+          </div>
+
+          <div className="divide-y divide-border/50 rounded-xl border border-border overflow-hidden">
+            {staffAttendances.length > 0 ? staffAttendances.map((att) => (
+              <div key={att.id} className="flex items-center justify-between px-3 py-2.5 bg-white">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <p className="text-[13px] font-bold truncate flex-1">{att.staffName}</p>
+                  {att.note && <span className="text-[9px] text-info font-medium truncate max-w-[120px]">メモ: {att.note}</span>}
+                </div>
+                <div className="shrink-0 ml-2 flex items-center gap-1.5">
+                  <AttendanceBadge status={att.status} />
+                  {isAdmin && <button onClick={async () => { if (!confirm(`${att.staffName} のスタッフ回答を削除しますか？`)) return; setStaffAttendances(prev => prev.filter(a => a.id !== att.id)); const ok = await deleteStaffAttendance(att.id); if (!ok) { alert("削除に失敗しました"); const fresh = await fetchStaffAttendancesByGame(id); setStaffAttendances(fresh); }}} className="w-6 h-6 flex items-center justify-center rounded-lg bg-error/10 text-error active:scale-90 transition-transform"><Trash2 className="w-3 h-3" /></button>}
+                </div>
+              </div>
+            )) : (
+              <div className="p-4 text-center text-[12px] text-muted">まだスタッフ出欠の回答はありません</div>
+            )}
+          </div>
+
+          {!isPast && (
+            <div className="space-y-3 pt-1">
+              {staffSubmitSuccess && (<div className="bg-attend/10 border border-attend/20 rounded-xl p-3 text-center animate-fade-in-up"><p className="text-attend font-bold text-[13px]">✅ スタッフ出欠を保存しました！</p></div>)}
+              <div>
+                <label className="text-[11px] font-bold text-muted ml-1 mb-1 block">スタッフのお名前（必須）</label>
+                <input type="text" value={staffName} onChange={(e) => setStaffName(e.target.value)} placeholder="例: 佐藤 コーチ" className="w-full bg-background border border-border px-4 py-3 rounded-xl text-[15px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { status: "attend" as AttendanceStatusValue, icon: "○", label: "参加", activeClass: "bg-attend text-white shadow-attend/30 border-attend" },
+                  { status: "absent" as AttendanceStatusValue, icon: "×", label: "欠席", activeClass: "bg-absent text-white shadow-absent/30 border-absent" },
+                  { status: "undecided" as AttendanceStatusValue, icon: "△", label: "未定", activeClass: "bg-undecided text-white shadow-undecided/30 border-undecided" },
+                ]).map((config) => (<button key={config.status} type="button" onClick={() => setSelectedStaffStatus(config.status)} className={cn("flex flex-col items-center justify-center py-4 px-2 rounded-xl border-2 font-bold transition-all shadow-sm active:scale-95 outline-none touch-active", selectedStaffStatus === config.status ? cn(config.activeClass, "scale-[1.02] shadow-md") : "border-border bg-white text-muted hover:bg-surface-variant active:bg-border")}><span className="text-2xl font-black">{config.icon}</span><span className="text-[10px] mt-0.5">{config.label}</span></button>))}
+              </div>
+              <div>
+                <label className="text-[11px] font-bold text-muted ml-1 mb-1 block">スタッフメモ（任意）</label>
+                <input type="text" value={staffNote} onChange={(e) => setStaffNote(e.target.value)} placeholder="例: 審判対応できます" className="w-full bg-background border border-border px-4 py-3 rounded-xl text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" />
+              </div>
+              <button type="button" onClick={handleStaffSubmit} disabled={staffSubmitting} className={cn("w-full py-3.5 rounded-xl font-black text-[15px] shadow-lg shadow-info/20 transition-all flex items-center justify-center gap-2 touch-active", staffSubmitting ? "bg-info/50 text-white cursor-not-allowed" : "bg-info text-white active:scale-[0.98]")}>
+                {staffSubmitting ? (<><Loader2 className="w-5 h-5 animate-spin" />送信中...</>) : (<><CheckCheck className="w-5 h-5" />スタッフ出欠を送信する</>)}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -35,12 +35,15 @@ export default function NewGamePage() {
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    const adminState = localStorage.getItem(storageKey) === "true";
-    if (!adminState) {
-      router.replace(teamLink("/calendar"));
-    } else {
-      setIsAuthorized(true);
+    async function checkAdmin() {
+      const adminState = localStorage.getItem(storageKey) === "true";
+      if (!adminState) {
+        router.replace(teamLink("/calendar"));
+      } else {
+        setIsAuthorized(true);
+      }
     }
+    checkAdmin();
   }, [router, storageKey, teamLink]);
 
   if (!isAuthorized) return null;

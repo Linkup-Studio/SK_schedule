@@ -13,8 +13,11 @@ export function GlobalLock({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const isAuth = localStorage.getItem(storageKey) === "true";
-    setIsUnlocked(isAuth);
+    async function loadAuthState() {
+      const isAuth = localStorage.getItem(storageKey) === "true";
+      setIsUnlocked(isAuth);
+    }
+    loadAuthState();
   }, [storageKey]);
 
   const handleUnlock = (e: React.FormEvent) => {

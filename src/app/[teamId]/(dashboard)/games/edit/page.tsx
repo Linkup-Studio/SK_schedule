@@ -38,12 +38,12 @@ function EditGameContent() {
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    const adminState = localStorage.getItem(storageKey) === "true";
-    if (!adminState) { router.replace(teamLink("/calendar")); return; }
-    setIsAuthorized(true);
-
-    if (!gameId) return;
     async function loadGame() {
+      const adminState = localStorage.getItem(storageKey) === "true";
+      if (!adminState) { router.replace(teamLink("/calendar")); return; }
+      setIsAuthorized(true);
+
+      if (!gameId) return;
       setIsLoading(true);
       const game = await fetchGameById(gameId);
       if (!game) { alert("試合が見つかりません"); router.push(teamLink("/calendar")); return; }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -23,13 +23,21 @@ export default function AdminMenuPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(false);
 
-  useEffect(() => {
-    const admin = localStorage.getItem(storageKey) === "true";
-    if (!admin) { router.replace(teamLink("/dashboard")); return; }
-    setIsAdmin(true);
+  const loadAnnouncements = useCallback(async () => {
+    setLoadingAnnouncements(true);
+    await cleanupOldAnnouncements(teamSlug);
+    const data = await fetchAnnouncements(teamSlug);
+    setAnnouncements(data);
+    setLoadingAnnouncements(false);
+  }, [teamSlug]);
 
-    // Supabaseから選手人数を読み込み
-    async function loadCounts() {
+  useEffect(() => {
+    async function loadAdminData() {
+      const admin = localStorage.getItem(storageKey) === "true";
+      if (!admin) { router.replace(teamLink("/dashboard")); return; }
+      setIsAdmin(true);
+
+      // Supabaseから選手人数を読み込み
       const saved = await fetchPlayerCountsByGrade(teamSlug);
       if (Object.keys(saved).length > 0) {
         const parsed: Record<number, number> = {};
@@ -38,18 +46,10 @@ export default function AdminMenuPage() {
         }
         setCounts(prev => ({ ...prev, ...parsed }));
       }
+      await loadAnnouncements();
     }
-    loadCounts();
-    loadAnnouncements();
-  }, [router, storageKey, teamLink, teamSlug]);
-
-  async function loadAnnouncements() {
-    setLoadingAnnouncements(true);
-    await cleanupOldAnnouncements(teamSlug);
-    const data = await fetchAnnouncements(teamSlug);
-    setAnnouncements(data);
-    setLoadingAnnouncements(false);
-  }
+    loadAdminData();
+  }, [router, storageKey, teamLink, teamSlug, loadAnnouncements]);
 
   const updateCount = async (grade: number, delta: number) => {
     const next = { ...counts, [grade]: Math.max(0, (counts[grade] ?? 0) + delta) };

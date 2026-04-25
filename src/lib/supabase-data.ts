@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { Game, Attendance, Announcement, AttendanceSummary, Player } from "./types";
+import type { Game, Attendance, Announcement, AttendanceSummary, Player, StaffAttendance } from "./types";
 import type { GradeValue, GameType, AttendanceStatusValue } from "./constants";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -41,6 +41,17 @@ function toAttendance(row: Record<string, any>): Attendance {
   };
 }
 
+function toStaffAttendance(row: Record<string, unknown>): StaffAttendance {
+  return {
+    id: String(row.id),
+    gameId: String(row.game_id),
+    staffName: String(row.staff_name),
+    status: row.status as AttendanceStatusValue,
+    note: typeof row.note === "string" ? row.note : undefined,
+    answeredAt: String(row.created_at),
+  };
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toAnnouncement(row: Record<string, any>): Announcement {
   return {
@@ -69,7 +80,7 @@ function toPlayer(row: Record<string, any>): Player {
 // チームID解決
 // =============================================
 
-let teamIdCache: Record<string, string> = {};
+const teamIdCache: Record<string, string> = {};
 
 export async function resolveTeamId(teamSlug: string): Promise<string | null> {
   if (teamIdCache[teamSlug]) return teamIdCache[teamSlug];
@@ -296,6 +307,64 @@ export async function deleteAttendance(id: string): Promise<boolean> {
   const { error } = await supabase.from("attendances").delete().eq("id", id);
   if (error) {
     console.error("出欠の削除に失敗しました:", error.message);
+    return false;
+  }
+  return true;
+}
+
+// =============================================
+// スタッフ出欠（Staff Attendances）
+// =============================================
+
+export async function fetchStaffAttendancesByGame(gameId: string): Promise<StaffAttendance[]> {
+  const { data, error } = await supabase
+    .from("staff_attendances")
+    .select("*")
+    .eq("game_id", gameId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("スタッフ出欠データの取得に失敗しました:", error.message);
+    return [];
+  }
+  return (data ?? []).map(toStaffAttendance);
+}
+
+export async function upsertStaffAttendance(teamSlug: string, input: {
+  gameId: string;
+  staffName: string;
+  status: "attend" | "absent" | "undecided";
+  note?: string;
+}): Promise<StaffAttendance | null> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return null;
+
+  const { data, error } = await supabase
+    .from("staff_attendances")
+    .upsert(
+      {
+        team_id: teamId,
+        game_id: input.gameId,
+        staff_name: input.staffName,
+        status: input.status,
+        note: input.note || null,
+      },
+      { onConflict: "game_id,staff_name" }
+    )
+    .select()
+    .single();
+
+  if (error) {
+    console.error("スタッフ出欠の送信に失敗しました:", error.message);
+    return null;
+  }
+  return data ? toStaffAttendance(data) : null;
+}
+
+export async function deleteStaffAttendance(id: string): Promise<boolean> {
+  const { error } = await supabase.from("staff_attendances").delete().eq("id", id);
+  if (error) {
+    console.error("スタッフ出欠の削除に失敗しました:", error.message);
     return false;
   }
   return true;

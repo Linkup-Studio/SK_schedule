@@ -10,6 +10,7 @@ interface TeamInfo {
   shortName: string;
   passcode: string;
   adminPasscode: string;
+  staffPin?: string;
 }
 
 interface TeamContextValue {
@@ -60,13 +61,25 @@ export function TeamProvider({
         .single();
 
       if (!error && data) {
+        const teamRow = data as {
+          id: string;
+          slug?: string | null;
+          name: string;
+          short_name?: string | null;
+          passcode?: string | null;
+          passphrase?: string | null;
+          admin_passcode?: string | null;
+          admin_pin?: string | null;
+          staff_pin?: string | null;
+        };
         const teamData: TeamInfo = {
-          id: data.id,
-          slug: data.id,
-          name: data.name,
-          shortName: data.id.toUpperCase(),
-          passcode: data.passphrase,
-          adminPasscode: data.admin_pin,
+          id: teamRow.id,
+          slug: teamRow.slug ?? teamRow.id,
+          name: teamRow.name,
+          shortName: teamRow.short_name ?? teamRow.id.toUpperCase(),
+          passcode: teamRow.passphrase ?? teamRow.passcode ?? "",
+          adminPasscode: teamRow.admin_pin ?? teamRow.admin_passcode ?? "",
+          staffPin: teamRow.staff_pin ?? undefined,
         };
         setTeam(teamData);
         localStorage.setItem(cacheKey, JSON.stringify(teamData));

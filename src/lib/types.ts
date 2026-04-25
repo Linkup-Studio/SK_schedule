@@ -45,6 +45,16 @@ export interface Attendance {
   answeredAt: string;
 }
 
+/** スタッフ出欠回答 */
+export interface StaffAttendance {
+  id: string;
+  gameId: string;
+  staffName: string;
+  status: AttendanceStatusValue;
+  note?: string;
+  answeredAt: string;
+}
+
 /** 出欠サマリー */
 export interface AttendanceSummary {
   attend: number;
