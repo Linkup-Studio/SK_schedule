@@ -51,6 +51,7 @@ export interface Attendance {
 export interface StaffAttendance {
   id: string;
   gameId: string;
+  attendanceDate?: string;
   staffName: string;
   status: AttendanceStatusValue;
   morningStatus?: AttendanceStatusValue;

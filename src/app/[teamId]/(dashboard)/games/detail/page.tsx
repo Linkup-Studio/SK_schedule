@@ -20,7 +20,7 @@ import {
   deleteGame,
   deleteAttendance,
   fetchPlayerCountsByGrade,
-  fetchStaffAttendancesByGame,
+  fetchStaffAttendancesByDate,
   upsertStaffAttendance,
   deleteStaffAttendance,
 } from "@/lib/supabase-data";
@@ -35,6 +35,8 @@ const safeFormat = (dateValue: string | Date | null | undefined, fmt: string) =>
   if (isNaN(d.getTime())) return "（未定）";
   try { return format(d, fmt, { locale: ja }); } catch { return "（形式エラー）"; }
 };
+
+const getLocalDateKey = (dateValue: string | Date) => format(typeof dateValue === "string" ? new Date(dateValue) : dateValue, "yyyy-MM-dd");
 
 const STATUS_OPTIONS = [
   { status: "attend" as AttendanceStatusValue, icon: "○", label: "参加", activeClass: "bg-attend text-white shadow-attend/30 border-attend" },
@@ -188,16 +190,20 @@ function GameDetailContent() {
       setIsAdmin(adminState);
       setIsStaff(staffState);
       const canViewStaff = adminState || staffState;
-      const [gameData, attData, counts, staffData] = await Promise.all([
+      const [gameData, attData, counts] = await Promise.all([
         fetchGameById(id),
         fetchAttendancesByGame(id),
         fetchPlayerCountsByGrade(teamSlug),
-        canViewStaff ? fetchStaffAttendancesByGame(id) : Promise.resolve([]),
       ]);
       setGame(gameData);
       setAttendances(attData);
-      setStaffAttendances(staffData);
       setGradeCounts(counts);
+      if (canViewStaff && gameData) {
+        const staffData = await fetchStaffAttendancesByDate(teamSlug, getLocalDateKey(gameData.dateStart));
+        setStaffAttendances(staffData);
+      } else {
+        setStaffAttendances([]);
+      }
       if (staffState) touchStaffMode(teamSlug);
       setLoading(false);
     }
@@ -232,8 +238,10 @@ function GameDetailContent() {
     if (!staffMorningStatus || !staffAfternoonStatus) { alert("午前・午後それぞれの出欠を選択してください"); return; }
     const status = getOverallStatus(staffMorningStatus, staffAfternoonStatus);
     setStaffSubmitting(true);
+    const attendanceDate = game ? getLocalDateKey(game.dateStart) : "";
     const result = await upsertStaffAttendance(teamSlug, {
       gameId: id,
+      attendanceDate,
       staffName: staffName.trim(),
       status,
       morningStatus: staffMorningStatus,
@@ -242,7 +250,7 @@ function GameDetailContent() {
     });
     setStaffSubmitting(false);
     if (result) {
-      const fresh = await fetchStaffAttendancesByGame(id);
+      const fresh = await fetchStaffAttendancesByDate(teamSlug, attendanceDate);
       setStaffAttendances(fresh);
       if (isStaff) touchStaffMode(teamSlug);
       setStaffSubmitSuccess(true);
@@ -372,7 +380,7 @@ function GameDetailContent() {
         <div className="bg-surface rounded-2xl border-2 border-info/20 p-4 space-y-4 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-info" />
           <div className="flex items-center justify-between gap-2">
-            <h2 className="font-black text-[15px] flex items-center gap-1.5"><Users className="w-4.5 h-4.5 text-info" />スタッフ出欠</h2>
+            <h2 className="font-black text-[15px] flex items-center gap-1.5"><Users className="w-4.5 h-4.5 text-info" />この日のスタッフ出欠</h2>
             <span className="text-[10px] font-black text-info bg-info/10 border border-info/20 px-2 py-1 rounded-lg">スタッフ限定</span>
           </div>
 
@@ -392,7 +400,7 @@ function GameDetailContent() {
                 </div>
                 <div className="shrink-0 ml-2 flex items-center gap-1.5">
                   <AttendanceBadge status={att.status} />
-                  {isAdmin && <button onClick={async () => { if (!confirm(`${att.staffName} のスタッフ回答を削除しますか？`)) return; setStaffAttendances(prev => prev.filter(a => a.id !== att.id)); const ok = await deleteStaffAttendance(att.id); if (!ok) { alert("削除に失敗しました"); const fresh = await fetchStaffAttendancesByGame(id); setStaffAttendances(fresh); }}} className="w-6 h-6 flex items-center justify-center rounded-lg bg-error/10 text-error active:scale-90 transition-transform"><Trash2 className="w-3 h-3" /></button>}
+                  {isAdmin && <button onClick={async () => { if (!confirm(`${att.staffName} のスタッフ回答を削除しますか？`)) return; setStaffAttendances(prev => prev.filter(a => a.id !== att.id)); const ok = await deleteStaffAttendance(att.id); if (!ok) { alert("削除に失敗しました"); const fresh = await fetchStaffAttendancesByDate(teamSlug, getLocalDateKey(game.dateStart)); setStaffAttendances(fresh); }}} className="w-6 h-6 flex items-center justify-center rounded-lg bg-error/10 text-error active:scale-90 transition-transform"><Trash2 className="w-3 h-3" /></button>}
                 </div>
               </div>
             )) : (

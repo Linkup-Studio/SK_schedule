@@ -49,6 +49,7 @@ function toStaffAttendance(row: Record<string, unknown>): StaffAttendance {
   return {
     id: String(row.id),
     gameId: String(row.game_id),
+    attendanceDate: typeof row.attendance_date === "string" ? row.attendance_date : undefined,
     staffName: String(row.staff_name),
     status,
     morningStatus: (row.morning_status ?? status) as AttendanceStatusValue,
@@ -326,11 +327,15 @@ export async function deleteAttendance(id: string): Promise<boolean> {
 // スタッフ出欠（Staff Attendances）
 // =============================================
 
-export async function fetchStaffAttendancesByGame(gameId: string): Promise<StaffAttendance[]> {
+export async function fetchStaffAttendancesByDate(teamSlug: string, attendanceDate: string): Promise<StaffAttendance[]> {
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return [];
+
   const { data, error } = await supabase
     .from("staff_attendances")
     .select("*")
-    .eq("game_id", gameId)
+    .eq("team_id", teamId)
+    .eq("attendance_date", attendanceDate)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -342,6 +347,7 @@ export async function fetchStaffAttendancesByGame(gameId: string): Promise<Staff
 
 export async function upsertStaffAttendance(teamSlug: string, input: {
   gameId: string;
+  attendanceDate: string;
   staffName: string;
   status: "attend" | "absent" | "undecided";
   morningStatus?: "attend" | "absent" | "undecided";
@@ -357,13 +363,14 @@ export async function upsertStaffAttendance(teamSlug: string, input: {
       {
         team_id: teamId,
         game_id: input.gameId,
+        attendance_date: input.attendanceDate,
         staff_name: input.staffName,
         status: input.status,
         morning_status: input.morningStatus ?? input.status,
         afternoon_status: input.afternoonStatus ?? input.status,
         note: input.note || null,
       },
-      { onConflict: "game_id,staff_name" }
+      { onConflict: "team_id,attendance_date,staff_name" }
     )
     .select()
     .single();
