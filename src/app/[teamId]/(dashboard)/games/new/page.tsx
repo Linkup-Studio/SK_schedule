@@ -11,6 +11,9 @@ import { useTeamLink } from "@/hooks/use-team-link";
 import { createGame, createAnnouncement } from "@/lib/supabase-data";
 import type { GameType, GradeValue } from "@/lib/constants";
 
+const getGameTypeLabel = (value: GameType) =>
+  GAME_TYPES.find((gameType) => gameType.value === value)?.label ?? "予定";
+
 export default function NewGamePage() {
   const router = useRouter();
   const { teamSlug } = useTeam();
@@ -59,12 +62,13 @@ export default function NewGamePage() {
     if (!title.trim()) { alert("タイトルを入力してください"); return; }
     if (selectedGrades.length === 0) { alert("対象学年を選択してください"); return; }
     if (!dateStart) { alert("開始日時を入力してください"); return; }
-    if (!venueName.trim()) { alert("会場名を入力してください"); return; }
+    if (type !== "off" && !venueName.trim()) { alert("会場名を入力してください"); return; }
 
     setIsSaving(true);
+    const normalizedVenueName = type === "off" && !venueName.trim() ? "休日" : venueName.trim();
     const result = await createGame(teamSlug, {
       title: title.trim(), type, grades: selectedGrades,
-      venueName: venueName.trim(),
+      venueName: normalizedVenueName,
       venueAddress: venueAddress.trim() || undefined,
       meetingPlace: meetingPlace.trim() || undefined,
       dateStart: new Date(dateStart).toISOString(),
@@ -83,11 +87,11 @@ export default function NewGamePage() {
       const day = d.getDate();
       const hours = d.getHours().toString().padStart(2, "0");
       const mins = d.getMinutes().toString().padStart(2, "0");
-      const typeLabel = type === "official" ? "公式戦" : type === "practice" ? "練習試合" : "その他";
+      const typeLabel = getGameTypeLabel(type);
       const annBody = [
         `【${typeLabel}】${title.trim()}`,
         `📅 ${month}月${day}日 ${hours}:${mins}`,
-        `📍 ${venueName.trim()}`,
+        normalizedVenueName ? `📍 ${normalizedVenueName}` : "",
         meetingTime ? `⏰ 集合: ${meetingTime}` : "",
         opponent ? `vs ${opponent.trim()}` : "",
         items.trim() ? `🎒 持ち物: ${items.trim()}` : "",
@@ -99,7 +103,7 @@ export default function NewGamePage() {
         body: annBody, targetGrades: selectedGrades,
       });
 
-      alert("✅ 試合を登録しました！");
+      alert("✅ 予定を登録しました！");
       router.push(teamLink("/calendar"));
     } else {
       alert("❌ 登録に失敗しました。もう一度お試しください。");
@@ -111,7 +115,7 @@ export default function NewGamePage() {
       <Link href={teamLink("/calendar")} className="inline-flex items-center gap-1 text-[13px] text-muted active:text-primary transition-colors py-1 pr-2">
         <ArrowLeft className="w-4 h-4" />カレンダーに戻る
       </Link>
-      <h1 className="font-black text-lg flex items-center gap-1.5"><Calendar className="w-5 h-5 text-primary" />試合を登録</h1>
+      <h1 className="font-black text-lg flex items-center gap-1.5"><Calendar className="w-5 h-5 text-primary" />予定を登録</h1>
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="bg-surface rounded-2xl border border-border p-3.5 space-y-3 shadow-sm animate-fade-in-up">
@@ -167,7 +171,7 @@ export default function NewGamePage() {
         </div>
 
         <div className="bg-surface rounded-2xl border border-border p-3.5 space-y-3.5 shadow-sm animate-fade-in-up animate-fade-in-up-delay-2">
-          <FormField icon={<MapPin className="w-4 h-4 text-error" />} label="会場名" required>
+          <FormField icon={<MapPin className="w-4 h-4 text-error" />} label="会場名" required={type !== "off"}>
             <input type="text" value={venueName} onChange={(e) => setVenueName(e.target.value)} placeholder="例: 市民球場 Aグラウンド" className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" />
           </FormField>
           <FormField icon={<MapPin className="w-4 h-4 text-muted" />} label="会場住所">
@@ -192,7 +196,7 @@ export default function NewGamePage() {
             className={cn("w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-black text-[15px] transition-all outline-none",
               isSaving ? "bg-primary/50 text-white cursor-not-allowed" : "bg-primary text-white active:bg-primary-light shadow-lg active:scale-[0.98] touch-active"
             )}>
-            {isSaving ? (<><Loader2 className="w-5 h-5 animate-spin" />登録中...</>) : (<><Save className="w-5 h-5" />試合を登録する</>)}
+            {isSaving ? (<><Loader2 className="w-5 h-5 animate-spin" />登録中...</>) : (<><Save className="w-5 h-5" />予定を登録する</>)}
           </button>
         </div>
       </form>

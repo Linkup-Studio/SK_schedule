@@ -98,7 +98,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-2.5">
           <h2 className="flex items-center gap-1.5 font-black text-[15px]">
             <CalendarDays className="w-4.5 h-4.5 text-primary" />
-            今後の試合
+            今後の予定
           </h2>
           <Link
             href={teamLink("/calendar")}
@@ -162,7 +162,7 @@ export default function DashboardPage() {
         ) : (
           <div className="bg-surface rounded-2xl border border-border p-6 text-center">
             <CalendarDays className="w-8 h-8 text-muted mx-auto mb-1.5" />
-            <p className="text-xs text-muted">今後の試合はありません</p>
+            <p className="text-xs text-muted">今後の予定はありません</p>
           </div>
         )}
       </section>

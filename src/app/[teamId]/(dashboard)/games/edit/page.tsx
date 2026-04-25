@@ -95,12 +95,13 @@ function EditGameContent() {
     if (!title.trim()) { alert("タイトルを入力してください"); return; }
     if (selectedGrades.length === 0) { alert("対象学年を選択してください"); return; }
     if (!dateStart) { alert("開始日時を入力してください"); return; }
-    if (!venueName.trim()) { alert("会場名を入力してください"); return; }
+    if (type !== "off" && !venueName.trim()) { alert("会場名を入力してください"); return; }
 
     setIsSaving(true);
+    const normalizedVenueName = type === "off" && !venueName.trim() ? "休日" : venueName.trim();
     const result = await updateGame(gameId, {
       title: title.trim(), type, grades: selectedGrades,
-      venueName: venueName.trim(),
+      venueName: normalizedVenueName,
       venueAddress: venueAddress.trim() || undefined,
       meetingPlace: meetingPlace.trim() || undefined,
       dateStart: new Date(dateStart).toISOString(),
@@ -176,7 +177,7 @@ function EditGameContent() {
         </div>
 
         <div className="bg-surface rounded-2xl border border-border p-3.5 space-y-3.5 shadow-sm">
-          <FormField icon={<MapPin className="w-4 h-4 text-error" />} label="会場名" required>
+          <FormField icon={<MapPin className="w-4 h-4 text-error" />} label="会場名" required={type !== "off"}>
             <input type="text" value={venueName} onChange={(e) => setVenueName(e.target.value)} placeholder="例: 市民球場" className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 shadow-input" />
           </FormField>
           <FormField icon={<MapPin className="w-4 h-4 text-muted" />} label="会場住所">

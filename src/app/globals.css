@@ -22,6 +22,8 @@
   /* 種別カラー */
   --color-official: #dc2626;
   --color-practice: #2563eb;
+  --color-training: #16a34a;
+  --color-off: #64748b;
   --color-tournament: #16a34a;
   --color-other: #6b7280;
 
@@ -127,6 +129,8 @@ input, textarea, [contenteditable] {
 /* ===== Badge Styles ===== */
 .badge-official { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
 .badge-practice { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.badge-training { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.badge-off { background: #f8fafc; color: #475569; border: 1px solid #cbd5e1; }
 .badge-tournament { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
 .badge-other { background: #f9fafb; color: #6b7280; border: 1px solid #e5e7eb; }
 

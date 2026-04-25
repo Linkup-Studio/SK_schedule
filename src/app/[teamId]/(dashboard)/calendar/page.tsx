@@ -14,6 +14,13 @@ import { GradeFilter } from "@/components/common/grade-filter";
 import { GameCard } from "@/components/games/game-card";
 
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+const gameTypeDotClasses = {
+  official: "bg-official",
+  practice: "bg-practice",
+  training: "bg-training",
+  off: "bg-off",
+  other: "bg-other",
+} as const;
 
 export default function CalendarPage() {
   const { teamSlug } = useTeam();
@@ -153,9 +160,7 @@ export default function CalendarPage() {
                       <div className="flex flex-wrap justify-center gap-0.5 mt-1 px-0.5">
                         {dayGames.map((g) => (
                           <span key={g.id} className={cn("w-1.5 h-1.5 rounded-full",
-                            g.type === "official" && "bg-official",
-                            g.type === "practice" && "bg-practice",
-                            g.type === "other" && "bg-other"
+                            gameTypeDotClasses[g.type] ?? "bg-other"
                           )} />
                         ))}
                       </div>
@@ -178,7 +183,7 @@ export default function CalendarPage() {
           {selectedDate && (
             <div className="space-y-2.5 animate-fade-in-up">
               <h3 className="font-bold text-xs text-muted flex items-center gap-1 before:content-[''] before:block before:w-1 before:h-3 before:bg-primary before:rounded-full">
-                {format(selectedDate, "M月d日（E）", { locale: ja })}の試合
+                {format(selectedDate, "M月d日（E）", { locale: ja })}の予定
               </h3>
               {selectedGames.length > 0 ? (
                 selectedGames.map((game, i) => (
@@ -186,7 +191,7 @@ export default function CalendarPage() {
                 ))
               ) : (
                 <div className="bg-surface rounded-xl border border-border p-4 text-center">
-                  <p className="text-[11px] text-muted">この日の試合はありません</p>
+                  <p className="text-[11px] text-muted">この日の予定はありません</p>
                 </div>
               )}
             </div>
@@ -201,8 +206,8 @@ export default function CalendarPage() {
           ) : (
             <div className="bg-surface rounded-2xl border border-border p-8 text-center">
               <CalendarDays className="w-10 h-10 text-muted mx-auto mb-2" />
-              <h3 className="font-bold text-sm mb-1">試合の予定はありません</h3>
-              <p className="text-[11px] text-muted">新しい試合を追加しましょう</p>
+              <h3 className="font-bold text-sm mb-1">予定はありません</h3>
+              <p className="text-[11px] text-muted">新しい予定を追加しましょう</p>
             </div>
           )}
         </div>

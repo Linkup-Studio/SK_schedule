@@ -11,10 +11,12 @@ export const GRADES = [
 
 export const GRADE_ALL_LABEL = "すべて";
 
-/** 試合種別 */
+/** 予定種別 */
 export const GAME_TYPES = [
   { value: "official", label: "公式戦", color: "official" },
   { value: "practice", label: "練習試合", color: "practice" },
+  { value: "training", label: "練習", color: "training" },
+  { value: "off", label: "休日", color: "off" },
   { value: "other", label: "その他", color: "other" },
 ] as const;
 
