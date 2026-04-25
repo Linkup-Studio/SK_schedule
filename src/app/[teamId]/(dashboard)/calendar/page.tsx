@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, isSameMonth } from "date-fns";
 import { ja } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, List, CalendarDays, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, List, CalendarDays, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
 import { fetchGames } from "@/lib/supabase-data";
+import { isStaffModeActive } from "@/lib/staff-auth";
+import { useTeamLink } from "@/hooks/use-team-link";
 import { GAME_TYPES } from "@/lib/constants";
 import type { GradeValue } from "@/lib/constants";
 import type { Game } from "@/lib/types";
@@ -24,8 +27,11 @@ const gameTypeDotClasses = {
 
 export default function CalendarPage() {
   const { teamSlug } = useTeam();
+  const teamLink = useTeamLink();
+  const storageKey = `${teamSlug}_admin`;
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const [canViewStaff, setCanViewStaff] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
   const [gradeFilter, setGradeFilter] = useState<GradeValue | null>(null);
@@ -40,6 +46,15 @@ export default function CalendarPage() {
     }
     load();
   }, [teamSlug]);
+
+  useEffect(() => {
+    const checkStaffAccess = () => {
+      setCanViewStaff(localStorage.getItem(storageKey) === "true" || isStaffModeActive(teamSlug));
+    };
+    checkStaffAccess();
+    window.addEventListener("storage", checkStaffAccess);
+    return () => window.removeEventListener("storage", checkStaffAccess);
+  }, [storageKey, teamSlug]);
 
   const filteredGames = gradeFilter
     ? allGames.filter((g) => g.grades.includes(gradeFilter))
@@ -186,9 +201,25 @@ export default function CalendarPage() {
                 {format(selectedDate, "M月d日（E）", { locale: ja })}の予定
               </h3>
               {selectedGames.length > 0 ? (
-                selectedGames.map((game, i) => (
-                  <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} />
-                ))
+                <>
+                  {canViewStaff && (
+                    <Link href={teamLink(`/staff-attendance?date=${format(selectedDate, "yyyy-MM-dd")}`)} className="flex items-center justify-between gap-3 bg-info/10 border-2 border-info/20 rounded-2xl px-4 py-3 active:scale-[0.99] transition-transform">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-info text-white flex items-center justify-center shrink-0">
+                          <Users className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-black text-info">{format(selectedDate, "M月d日", { locale: ja })}のスタッフ出欠</p>
+                          <p className="text-[11px] text-muted font-bold">この日の午前・午後をまとめて登録</p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-info shrink-0" />
+                    </Link>
+                  )}
+                  {selectedGames.map((game, i) => (
+                    <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} />
+                  ))}
+                </>
               ) : (
                 <div className="bg-surface rounded-xl border border-border p-4 text-center">
                   <p className="text-[11px] text-muted">この日の予定はありません</p>
