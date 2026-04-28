@@ -7,12 +7,12 @@ import { ja } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, List, CalendarDays, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
-import { fetchGames } from "@/lib/supabase-data";
+import { fetchGames, fetchAttendanceSummary } from "@/lib/supabase-data";
 import { isStaffModeActive } from "@/lib/staff-auth";
 import { useTeamLink } from "@/hooks/use-team-link";
 import { GAME_TYPES } from "@/lib/constants";
 import type { GradeValue } from "@/lib/constants";
-import type { Game } from "@/lib/types";
+import type { Game, AttendanceSummary } from "@/lib/types";
 import { GradeFilter } from "@/components/common/grade-filter";
 import { GameCard } from "@/components/games/game-card";
 
@@ -30,6 +30,7 @@ export default function CalendarPage() {
   const teamLink = useTeamLink();
   const storageKey = `${teamSlug}_admin`;
   const [allGames, setAllGames] = useState<Game[]>([]);
+  const [summaries, setSummaries] = useState<Record<string, AttendanceSummary>>({});
   const [loading, setLoading] = useState(true);
   const [canViewStaff, setCanViewStaff] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -42,6 +43,16 @@ export default function CalendarPage() {
       setLoading(true);
       const games = await fetchGames(teamSlug);
       setAllGames(games);
+
+      // 各試合の出欠サマリーを並行取得
+      const sums: Record<string, AttendanceSummary> = {};
+      await Promise.all(
+        games.map(async (g) => {
+          sums[g.id] = await fetchAttendanceSummary(g.id, teamSlug, g.grades);
+        })
+      );
+      setSummaries(sums);
+
       setLoading(false);
     }
     load();
@@ -217,7 +228,7 @@ export default function CalendarPage() {
                     </Link>
                   )}
                   {selectedGames.map((game, i) => (
-                    <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} />
+                    <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} attendanceSummary={summaries[game.id]} />
                   ))}
                 </>
               ) : (
@@ -232,7 +243,7 @@ export default function CalendarPage() {
         <div className="space-y-2.5">
           {upcomingGames.length > 0 ? (
             upcomingGames.map((game, i) => (
-              <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} />
+              <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} attendanceSummary={summaries[game.id]} />
             ))
           ) : (
             <div className="bg-surface rounded-2xl border border-border p-8 text-center">
