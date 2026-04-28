@@ -34,7 +34,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(true);
   const [canViewStaff, setCanViewStaff] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
+  const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
   const [gradeFilter, setGradeFilter] = useState<GradeValue | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
