@@ -135,15 +135,10 @@ export function AttendanceSummaryBar({
   morning?: { attend: number; absent: number; undecided: number; noAnswer: number; total: number };
   afternoon?: { attend: number; absent: number; undecided: number; noAnswer: number; total: number };
 }) {
-  // 午前/午後データがあり、かつ午前と午後で数値が異なる場合は2段表示
+  // 午前/午後データがある場合は常に2段表示
   const hasPeriods = morning && afternoon;
-  const periodsAreDifferent = hasPeriods && (
-    morning.attend !== afternoon.attend ||
-    morning.absent !== afternoon.absent ||
-    morning.noAnswer !== afternoon.noAnswer
-  );
 
-  if (hasPeriods && periodsAreDifferent) {
+  if (hasPeriods) {
     return (
       <div className="space-y-2">
         <SummaryRow {...morning} label="午前" />
