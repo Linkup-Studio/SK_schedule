@@ -423,19 +423,42 @@ export async function updatePlayerCounts(teamSlug: string, counts: Record<string
 
 export async function fetchAttendanceSummary(gameId: string, teamSlug: string, grades?: GradeValue[]): Promise<AttendanceSummary> {
   const attendances = await fetchAttendancesByGame(gameId);
+
+  // 全体集計（既存の status ベース - 後方互換）
   const attend = attendances.filter((a) => a.status === "attend").length;
   const absent = attendances.filter((a) => a.status === "absent").length;
   const undecided = attendances.filter((a) => a.status === "undecided").length;
+
+  // 午前集計 (morningStatus)
+  const mAttend = attendances.filter((a) => a.morningStatus === "attend").length;
+  const mAbsent = attendances.filter((a) => a.morningStatus === "absent").length;
+  const mUndecided = attendances.filter((a) => a.morningStatus === "undecided").length;
+
+  // 午後集計 (afternoonStatus)
+  const aAttend = attendances.filter((a) => a.afternoonStatus === "attend").length;
+  const aAbsent = attendances.filter((a) => a.afternoonStatus === "absent").length;
+  const aUndecided = attendances.filter((a) => a.afternoonStatus === "undecided").length;
 
   let totalPlayers = 0;
   if (grades && grades.length > 0) {
     const counts = await fetchPlayerCountsByGrade(teamSlug);
     totalPlayers = grades.reduce((sum, g) => sum + (counts[String(g)] ?? 0), 0);
   }
+
   const noAnswer = Math.max(0, totalPlayers - attend - absent - undecided);
   const total = attend + absent + undecided + noAnswer;
 
-  return { attend, absent, undecided, noAnswer, total };
+  const mNoAnswer = Math.max(0, totalPlayers - mAttend - mAbsent - mUndecided);
+  const mTotal = mAttend + mAbsent + mUndecided + mNoAnswer;
+
+  const aNoAnswer = Math.max(0, totalPlayers - aAttend - aAbsent - aUndecided);
+  const aTotal = aAttend + aAbsent + aUndecided + aNoAnswer;
+
+  return {
+    attend, absent, undecided, noAnswer, total,
+    morning: { attend: mAttend, absent: mAbsent, undecided: mUndecided, noAnswer: mNoAnswer, total: mTotal },
+    afternoon: { attend: aAttend, absent: aAbsent, undecided: aUndecided, noAnswer: aNoAnswer, total: aTotal },
+  };
 }
 
 // =============================================

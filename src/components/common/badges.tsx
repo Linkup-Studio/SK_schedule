@@ -62,19 +62,21 @@ export function GradeBadge({ grade }: { grade: GradeValue }) {
   );
 }
 
-/** 出欠サマリーバー */
-export function AttendanceSummaryBar({
+/** 出欠サマリーバー（1行分） */
+function SummaryRow({
   attend,
   absent,
   undecided,
   noAnswer,
   total,
+  label,
 }: {
   attend: number;
   absent: number;
   undecided: number;
   noAnswer: number;
   total: number;
+  label?: string;
 }) {
   if (total === 0) return null;
 
@@ -85,7 +87,10 @@ export function AttendanceSummaryBar({
   ];
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1">
+      {label && (
+        <span className="text-[10px] font-bold text-muted">{label}</span>
+      )}
       {/* プログレスバー */}
       <div className="h-2 rounded-full bg-gray-100 overflow-hidden flex">
         {segments.map((seg) =>
@@ -109,6 +114,53 @@ export function AttendanceSummaryBar({
         ))}
       </div>
     </div>
+  );
+}
+
+/** 出欠サマリーバー */
+export function AttendanceSummaryBar({
+  attend,
+  absent,
+  undecided,
+  noAnswer,
+  total,
+  morning,
+  afternoon,
+}: {
+  attend: number;
+  absent: number;
+  undecided: number;
+  noAnswer: number;
+  total: number;
+  morning?: { attend: number; absent: number; undecided: number; noAnswer: number; total: number };
+  afternoon?: { attend: number; absent: number; undecided: number; noAnswer: number; total: number };
+}) {
+  // 午前/午後データがあり、かつ午前と午後で数値が異なる場合は2段表示
+  const hasPeriods = morning && afternoon;
+  const periodsAreDifferent = hasPeriods && (
+    morning.attend !== afternoon.attend ||
+    morning.absent !== afternoon.absent ||
+    morning.noAnswer !== afternoon.noAnswer
+  );
+
+  if (hasPeriods && periodsAreDifferent) {
+    return (
+      <div className="space-y-2">
+        <SummaryRow {...morning} label="午前" />
+        <SummaryRow {...afternoon} label="午後" />
+      </div>
+    );
+  }
+
+  // 午前/午後が同じ or データなし → 従来の1段表示
+  return (
+    <SummaryRow
+      attend={attend}
+      absent={absent}
+      undecided={undecided}
+      noAnswer={noAnswer}
+      total={total}
+    />
   );
 }
 

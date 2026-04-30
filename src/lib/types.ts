@@ -60,6 +60,15 @@ export interface StaffAttendance {
   answeredAt: string;
 }
 
+/** 出欠サマリー（時間帯別） */
+export interface PeriodSummary {
+  attend: number;
+  absent: number;
+  undecided: number;
+  noAnswer: number;
+  total: number;
+}
+
 /** 出欠サマリー */
 export interface AttendanceSummary {
   attend: number;
@@ -67,6 +76,8 @@ export interface AttendanceSummary {
   undecided: number;
   noAnswer: number;
   total: number;
+  morning?: PeriodSummary;
+  afternoon?: PeriodSummary;
 }
 
 /** お知らせ */
