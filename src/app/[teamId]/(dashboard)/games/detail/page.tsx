@@ -322,12 +322,15 @@ function GameDetailContent() {
             <div className="space-y-3">
               <PeriodStatusPicker label="午前" value={morningStatus} onChange={setMorningStatus} />
               <PeriodStatusPicker label="午後" value={afternoonStatus} onChange={setAfternoonStatus} />
-              {(morningStatus && afternoonStatus && (morningStatus !== "attend" || afternoonStatus !== "attend")) && (
-                <div className="bg-amber-50/50 border border-amber-100 rounded-xl p-3 animate-fade-in-up">
-                  <label className="text-[10px] font-bold text-undecided flex items-center gap-1 mb-1">理由・補足（任意）</label>
-                  <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="例: 午後は塾のため欠席" className="w-full px-3 py-2.5 rounded-xl border border-amber-200 bg-white text-[13px] focus:outline-none focus:ring-2 focus:ring-undecided/30 shadow-sm" />
-                </div>
-              )}
+              {morningStatus && afternoonStatus && (() => {
+                const allAttend = morningStatus === "attend" && afternoonStatus === "attend";
+                return (
+                  <div className={cn("rounded-xl p-3 animate-fade-in-up border", allAttend ? "bg-attend/5 border-attend/20" : "bg-amber-50/50 border-amber-100")}>
+                    <label className={cn("text-[10px] font-bold flex items-center gap-1 mb-1", allAttend ? "text-attend" : "text-undecided")}>{allAttend ? "コメント（任意）" : "理由・補足（任意）"}</label>
+                    <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder={allAttend ? "例: 少し遅れますが参加します" : "例: 午後は塾のため欠席"} className={cn("w-full px-3 py-2.5 rounded-xl border bg-white text-[13px] focus:outline-none focus:ring-2 shadow-sm", allAttend ? "border-attend/30 focus:ring-attend/30" : "border-amber-200 focus:ring-undecided/30")} />
+                  </div>
+                );
+              })()}
               <div className="bg-info/10 border border-info/20 rounded-xl px-3 py-2.5 text-center"><p className="text-[11px] font-bold text-info">🔄 同じお名前で再送信すると、回答を修正できます</p></div>
               <div className="pt-2"><button type="button" onClick={handleFinalSubmit} disabled={submitting} className={cn("w-full py-3.5 rounded-xl font-black text-[15px] shadow-lg shadow-primary/30 transition-all flex items-center justify-center gap-2 touch-active", submitting ? "bg-primary/50 text-white cursor-not-allowed" : "bg-primary text-white active:bg-primary-light active:scale-[0.98]")}>{submitting ? (<><Loader2 className="w-5 h-5 animate-spin" />送信中...</>) : (<><CheckCheck className="w-5 h-5" />この出欠を送信する</>)}</button></div>
             </div>
@@ -346,7 +349,12 @@ function GameDetailContent() {
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <p className="text-[13px] font-bold truncate">{att.userName}</p>
                     <PeriodStatusText morning={att.morningStatus ?? att.status} afternoon={att.afternoonStatus ?? att.status} />
-                    {att.reason && <p className="text-[9px] text-error font-medium truncate max-w-[180px]">理由: {att.reason}</p>}
+                    {att.reason && (() => {
+                      const m = att.morningStatus ?? att.status;
+                      const a = att.afternoonStatus ?? att.status;
+                      const allAttend = m === "attend" && a === "attend";
+                      return <p className={cn("text-[9px] font-medium truncate max-w-[180px]", allAttend ? "text-muted" : "text-error")}>{allAttend ? "コメント" : "理由"}: {att.reason}</p>;
+                    })()}
                   </div>
                   <div className="shrink-0 flex items-center gap-1.5">
                     {isAdmin && <button onClick={async () => { if (!confirm(`${att.userName} の回答を削除しますか？`)) return; setAttendances(prev => prev.filter(a => a.id !== att.id)); const ok = await deleteAttendance(att.id); if (!ok) { alert("削除に失敗しました"); const fresh = await fetchAttendancesByGame(id); setAttendances(fresh); }}} className="w-6 h-6 flex items-center justify-center rounded-lg bg-error/10 text-error active:scale-90 transition-transform"><Trash2 className="w-3 h-3" /></button>}
