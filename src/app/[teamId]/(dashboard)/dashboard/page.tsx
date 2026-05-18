@@ -16,7 +16,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
-import { fetchUpcomingGames, fetchAnnouncements, fetchAttendanceSummary } from "@/lib/supabase-data";
+import { fetchUpcomingGames, fetchAnnouncements, fetchAttendanceSummary, fetchAnsweredGameIds } from "@/lib/supabase-data";
+import { getMyName } from "@/lib/my-name";
 import { GameTypeBadge, GradeBadge, AttendanceSummaryBar } from "@/components/common/badges";
 import type { Game, Announcement, AttendanceSummary } from "@/lib/types";
 
@@ -26,6 +27,7 @@ export default function DashboardPage() {
   const [upcomingGames, setUpcomingGames] = useState<Game[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [summaries, setSummaries] = useState<Record<string, AttendanceSummary>>({});
+  const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,6 +40,7 @@ export default function DashboardPage() {
         ]);
         setUpcomingGames(games);
         setAnnouncements(anns);
+        setAnsweredIds(await fetchAnsweredGameIds(teamSlug, getMyName(teamSlug)));
 
         const sums: Record<string, AttendanceSummary> = {};
         await Promise.all(
@@ -118,7 +121,10 @@ export default function DashboardPage() {
                 <Link
                   key={game.id}
                   href={teamLink(`/games/detail?id=${game.id}`)}
-                  className="block bg-surface rounded-2xl border border-border p-3.5 active:scale-[0.98] transition-transform"
+                  className={cn(
+                    "block bg-surface rounded-2xl border border-border p-3.5 active:scale-[0.98] transition-transform",
+                    answeredIds.has(game.id) && "border-attend/40 bg-attend/5"
+                  )}
                 >
                   <div className="flex items-start gap-2.5 mb-2.5">
                     <div className="w-11 h-[52px] rounded-xl bg-gradient-hero text-white flex flex-col items-center justify-center shrink-0">
@@ -139,6 +145,9 @@ export default function DashboardPage() {
                         {game.grades.map((g) => (
                           <GradeBadge key={g} grade={g} />
                         ))}
+                        {answeredIds.has(game.id) && (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-attend/15 text-attend">✓ 回答済み</span>
+                        )}
                       </div>
                       <h3 className="font-bold text-[13px] truncate">{game.title}</h3>
                       <div className="flex flex-wrap gap-x-2.5 gap-y-0 text-[10px] text-muted mt-0.5">

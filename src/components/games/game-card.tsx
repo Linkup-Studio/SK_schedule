@@ -17,7 +17,7 @@ function getRelativeDate(dateStr: string): string {
   return "";
 }
 
-export function GameCard({ game, index = 0, attendanceSummary, teamSlug }: { game: Game; index?: number; attendanceSummary?: AttendanceSummary; teamSlug: string }) {
+export function GameCard({ game, index = 0, attendanceSummary, teamSlug, answered = false }: { game: Game; index?: number; attendanceSummary?: AttendanceSummary; teamSlug: string; answered?: boolean }) {
   const summary = attendanceSummary ?? { attend: 0, absent: 0, undecided: 0, noAnswer: 0, total: 0 };
   const dateStart = new Date(game.dateStart);
   const relative = getRelativeDate(game.dateStart);
@@ -30,6 +30,7 @@ export function GameCard({ game, index = 0, attendanceSummary, teamSlug }: { gam
       className={cn(
         "block bg-surface rounded-2xl border border-border p-3.5 shadow-sm touch-active",
         "animate-fade-in-up focus:ring-2 focus:ring-primary/20 outline-none",
+        answered && "border-attend/40 bg-attend/5",
         isPast && "opacity-60"
       )}
       style={{ animationDelay: `${(index % 4) * 0.08}s` }}
@@ -49,6 +50,9 @@ export function GameCard({ game, index = 0, attendanceSummary, teamSlug }: { gam
             <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
               <GameTypeBadge type={game.type} />
               {game.grades.map((g) => (<GradeBadge key={g} grade={g} />))}
+              {answered && (
+                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-attend/15 text-attend">✓ 回答済み</span>
+              )}
               {relative && (
                 <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-md ml-auto shrink-0", isUrgent ? "bg-error/10 text-error" : "bg-primary-50 text-primary")}>{relative}</span>
               )}

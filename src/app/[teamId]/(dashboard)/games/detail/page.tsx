@@ -14,6 +14,7 @@ import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
 import { useGoBack } from "@/hooks/use-go-back";
 import { isStaffModeActive, touchStaffMode } from "@/lib/staff-auth";
+import { getMyName, setMyName } from "@/lib/my-name";
 import {
   fetchGameById,
   fetchAttendancesByGame,
@@ -180,7 +181,7 @@ function GameDetailContent() {
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [playerName, setPlayerName] = useState("");
+  const [playerName, setPlayerName] = useState(() => getMyName(teamSlug));
   const [morningStatus, setMorningStatus] = useState<AttendanceStatusValue | null>(null);
   const [afternoonStatus, setAfternoonStatus] = useState<AttendanceStatusValue | null>(null);
   const [reason, setReason] = useState("");
@@ -227,9 +228,10 @@ function GameDetailContent() {
     if (result) {
       const fresh = await fetchAttendancesByGame(id);
       setAttendances(fresh);
+      setMyName(teamSlug, playerName.trim());
       setSubmitSuccess(true);
       setTimeout(() => setSubmitSuccess(false), 3000);
-      setPlayerName(""); setMorningStatus(null); setAfternoonStatus(null); setReason("");
+      setMorningStatus(null); setAfternoonStatus(null); setReason("");
     } else { alert("送信に失敗しました。もう一度お試しください。"); }
   };
 

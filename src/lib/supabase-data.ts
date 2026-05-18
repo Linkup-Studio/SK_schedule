@@ -279,6 +279,26 @@ export async function fetchAttendancesByGame(gameId: string): Promise<Attendance
   return (data ?? []).map(toAttendance);
 }
 
+/** 指定した名前で回答済みの試合ID一覧を取得（個々の「回答済み」表示用） */
+export async function fetchAnsweredGameIds(teamSlug: string, playerName: string): Promise<Set<string>> {
+  const name = playerName.trim();
+  if (!name) return new Set();
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return new Set();
+
+  const { data, error } = await supabase
+    .from("attendances")
+    .select("game_id")
+    .eq("team_id", teamId)
+    .eq("player_name", name);
+
+  if (error) {
+    console.error("回答済み予定の取得に失敗しました:", error.message);
+    return new Set();
+  }
+  return new Set((data ?? []).map((r) => String(r.game_id)));
+}
+
 export async function upsertAttendance(teamSlug: string, input: {
   gameId: string;
   playerName: string;

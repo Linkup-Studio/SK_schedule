@@ -7,8 +7,9 @@ import { ja } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, List, CalendarDays, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
-import { fetchGames, fetchAttendanceSummary } from "@/lib/supabase-data";
+import { fetchGames, fetchAttendanceSummary, fetchAnsweredGameIds } from "@/lib/supabase-data";
 import { isStaffModeActive } from "@/lib/staff-auth";
+import { getMyName } from "@/lib/my-name";
 import { useTeamLink } from "@/hooks/use-team-link";
 import { GAME_TYPES } from "@/lib/constants";
 import type { GradeValue } from "@/lib/constants";
@@ -42,12 +43,16 @@ export default function CalendarPage() {
     return saved === 1 || saved === 2 || saved === 3 ? (saved as GradeValue) : null;
   });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       const games = await fetchGames(teamSlug);
       setAllGames(games);
+
+      // 自分の名前で回答済みの予定IDを取得（個々の「回答済み」表示用）
+      setAnsweredIds(await fetchAnsweredGameIds(teamSlug, getMyName(teamSlug)));
 
       // 各試合の出欠サマリーを並行取得
       const sums: Record<string, AttendanceSummary> = {};
@@ -240,7 +245,7 @@ export default function CalendarPage() {
                     </Link>
                   )}
                   {selectedGames.map((game, i) => (
-                    <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} attendanceSummary={summaries[game.id]} />
+                    <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} attendanceSummary={summaries[game.id]} answered={answeredIds.has(game.id)} />
                   ))}
                 </>
               ) : (
@@ -255,7 +260,7 @@ export default function CalendarPage() {
         <div className="space-y-2.5">
           {upcomingGames.length > 0 ? (
             upcomingGames.map((game, i) => (
-              <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} attendanceSummary={summaries[game.id]} />
+              <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} attendanceSummary={summaries[game.id]} answered={answeredIds.has(game.id)} />
             ))
           ) : (
             <div className="bg-surface rounded-2xl border border-border p-8 text-center">
