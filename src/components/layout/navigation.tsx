@@ -6,6 +6,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
+import { useUnseenCounts } from "@/hooks/use-unseen-counts";
 import { Home, Calendar, Megaphone, Plus, LogOut, Settings } from "lucide-react";
 
 export function Header() {
@@ -138,6 +139,7 @@ export function BottomNav() {
   const teamLink = useTeamLink();
   const storageKey = `${teamSlug}_admin`;
   const [isAdmin, setIsAdmin] = useState(false);
+  const { newGames, newAnns } = useUnseenCounts();
 
   useEffect(() => {
     const checkAdmin = () => {
@@ -164,6 +166,10 @@ export function BottomNav() {
           const isActive = tab.href === `${prefix}/dashboard`
             ? pathname === `${prefix}/dashboard`
             : !("isAction" in tab) && pathname.startsWith(tab.href);
+
+          const badgeCount =
+            tab.href === `${prefix}/calendar` ? newGames :
+            tab.href === `${prefix}/announcements` ? newAnns : 0;
 
           if ("isAction" in tab && tab.isAction) {
             return (
@@ -192,13 +198,18 @@ export function BottomNav() {
               )}
             >
               <div className={cn(
-                "w-8 h-8 flex items-center justify-center rounded-xl transition-all",
+                "relative w-8 h-8 flex items-center justify-center rounded-xl transition-all",
                 isActive && "bg-primary-50"
               )}>
                 <tab.icon
                   className="w-[22px] h-[22px]"
                   strokeWidth={isActive ? 2.5 : 1.8}
                 />
+                {badgeCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[15px] h-[15px] px-0.5 rounded-full bg-error text-white text-[9px] font-black leading-none flex items-center justify-center ring-2 ring-white">
+                    {badgeCount > 9 ? "9+" : badgeCount}
+                  </span>
+                )}
               </div>
               <span className={cn(
                 "text-[9px] mt-0.5",
