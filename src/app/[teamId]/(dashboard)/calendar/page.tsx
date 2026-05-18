@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, isSameMonth } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -271,9 +271,49 @@ export default function CalendarPage() {
       ) : (
         <div className="space-y-2.5">
           {upcomingGames.length > 0 ? (
-            upcomingGames.map((game, i) => (
-              <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} attendanceSummary={summaries[game.id]} answered={answeredIds.has(game.id)} />
-            ))
+            (() => {
+              const blocks: ReactNode[] = [];
+              let lastKey = "";
+              upcomingGames.forEach((game, i) => {
+                const key = format(new Date(game.dateStart), "yyyy-MM-dd");
+                if (key !== lastKey) {
+                  lastKey = key;
+                  if (canViewStaff) {
+                    const dAns = staffAnsweredDates.has(key);
+                    blocks.push(
+                      <Link
+                        key={`staff-${key}`}
+                        href={teamLink(`/staff-attendance?date=${key}`)}
+                        className={cn(
+                          "flex items-center justify-between gap-3 border-2 rounded-2xl px-4 py-3 active:scale-[0.99] transition-transform",
+                          dAns ? "bg-attend/10 border-attend/30" : "bg-info/10 border-info/20"
+                        )}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={cn("w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0", dAns ? "bg-attend" : "bg-info")}>
+                            <Users className="w-4.5 h-4.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className={cn("text-[13px] font-black flex items-center gap-1.5 flex-wrap", dAns ? "text-attend" : "text-info")}>
+                              {format(new Date(game.dateStart), "M月d日（E）", { locale: ja })}のスタッフ出欠
+                              {dAns && (
+                                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-attend/20 text-attend">✓ 回答済み</span>
+                              )}
+                            </p>
+                            <p className="text-[11px] text-muted font-bold">{dAns ? "タップで内容の確認・修正ができます" : "この日の午前・午後をまとめて登録"}</p>
+                          </div>
+                        </div>
+                        <ChevronRight className={cn("w-5 h-5 shrink-0", dAns ? "text-attend" : "text-info")} />
+                      </Link>
+                    );
+                  }
+                }
+                blocks.push(
+                  <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} attendanceSummary={summaries[game.id]} answered={answeredIds.has(game.id)} />
+                );
+              });
+              return blocks;
+            })()
           ) : (
             <div className="bg-surface rounded-2xl border border-border p-8 text-center">
               <CalendarDays className="w-10 h-10 text-muted mx-auto mb-2" />
