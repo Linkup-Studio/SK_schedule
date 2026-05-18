@@ -123,7 +123,7 @@ export default function DashboardPage() {
                   href={teamLink(`/games/detail?id=${game.id}`)}
                   className={cn(
                     "block bg-surface rounded-2xl border border-border p-3.5 active:scale-[0.98] transition-transform",
-                    answeredIds.has(game.id) && "border-attend/40 bg-attend/5"
+                    answeredIds.has(game.id) && "border-attend/60 bg-attend/15"
                   )}
                 >
                   <div className="flex items-start gap-2.5 mb-2.5">
@@ -146,7 +146,7 @@ export default function DashboardPage() {
                           <GradeBadge key={g} grade={g} />
                         ))}
                         {answeredIds.has(game.id) && (
-                          <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-attend/15 text-attend">✓ 回答済み</span>
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-attend/25 text-attend">✓ 回答済み</span>
                         )}
                       </div>
                       <h3 className="font-bold text-[13px] truncate">{game.title}</h3>

@@ -30,7 +30,7 @@ export function GameCard({ game, index = 0, attendanceSummary, teamSlug, answere
       className={cn(
         "block bg-surface rounded-2xl border border-border p-3.5 shadow-sm touch-active",
         "animate-fade-in-up focus:ring-2 focus:ring-primary/20 outline-none",
-        answered && "border-attend/40 bg-attend/5",
+        answered && "border-attend/60 bg-attend/15",
         isPast && "opacity-60"
       )}
       style={{ animationDelay: `${(index % 4) * 0.08}s` }}
@@ -51,7 +51,7 @@ export function GameCard({ game, index = 0, attendanceSummary, teamSlug, answere
               <GameTypeBadge type={game.type} />
               {game.grades.map((g) => (<GradeBadge key={g} grade={g} />))}
               {answered && (
-                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-attend/15 text-attend">✓ 回答済み</span>
+                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-attend/25 text-attend">✓ 回答済み</span>
               )}
               {relative && (
                 <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-md ml-auto shrink-0", isUrgent ? "bg-error/10 text-error" : "bg-primary-50 text-primary")}>{relative}</span>
