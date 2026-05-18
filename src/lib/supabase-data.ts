@@ -365,6 +365,30 @@ export async function fetchStaffAttendancesByDate(teamSlug: string, attendanceDa
   return (data ?? []).map(toStaffAttendance);
 }
 
+/** 指定したスタッフ名で回答済みの日付一覧を取得（スタッフ版「回答済み」表示用） */
+export async function fetchStaffAnsweredDates(teamSlug: string, staffName: string): Promise<Set<string>> {
+  const name = staffName.trim();
+  if (!name) return new Set();
+  const teamId = await resolveTeamId(teamSlug);
+  if (!teamId) return new Set();
+
+  const { data, error } = await supabase
+    .from("staff_attendances")
+    .select("attendance_date")
+    .eq("team_id", teamId)
+    .eq("staff_name", name);
+
+  if (error) {
+    console.error("スタッフ回答済み日付の取得に失敗しました:", error.message);
+    return new Set();
+  }
+  return new Set(
+    (data ?? [])
+      .map((r) => (typeof r.attendance_date === "string" ? r.attendance_date : null))
+      .filter((d): d is string => !!d)
+  );
+}
+
 export async function upsertStaffAttendance(teamSlug: string, input: {
   gameId: string;
   attendanceDate: string;

@@ -7,9 +7,9 @@ import { ja } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, List, CalendarDays, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
-import { fetchGames, fetchAttendanceSummary, fetchAnsweredGameIds } from "@/lib/supabase-data";
+import { fetchGames, fetchAttendanceSummary, fetchAnsweredGameIds, fetchStaffAnsweredDates } from "@/lib/supabase-data";
 import { isStaffModeActive } from "@/lib/staff-auth";
-import { getMyName } from "@/lib/my-name";
+import { getMyName, getMyStaffName } from "@/lib/my-name";
 import { useTeamLink } from "@/hooks/use-team-link";
 import { GAME_TYPES } from "@/lib/constants";
 import type { GradeValue } from "@/lib/constants";
@@ -44,6 +44,7 @@ export default function CalendarPage() {
   });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
+  const [staffAnsweredDates, setStaffAnsweredDates] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function load() {
@@ -53,6 +54,7 @@ export default function CalendarPage() {
 
       // 自分の名前で回答済みの予定IDを取得（個々の「回答済み」表示用）
       setAnsweredIds(await fetchAnsweredGameIds(teamSlug, getMyName(teamSlug)));
+      setStaffAnsweredDates(await fetchStaffAnsweredDates(teamSlug, getMyStaffName(teamSlug)));
 
       // 各試合の出欠サマリーを並行取得
       const sums: Record<string, AttendanceSummary> = {};
@@ -105,9 +107,11 @@ export default function CalendarPage() {
     return map;
   }, [filteredGames]);
 
-  const selectedGames = selectedDate
-    ? gamesByDate.get(format(selectedDate, "yyyy-MM-dd")) || []
+  const selectedDateKey = selectedDate ? format(selectedDate, "yyyy-MM-dd") : "";
+  const selectedGames = selectedDateKey
+    ? gamesByDate.get(selectedDateKey) || []
     : [];
+  const staffAnsweredForSelected = selectedDateKey ? staffAnsweredDates.has(selectedDateKey) : false;
 
   const now = new Date();
   const upcomingGames = filteredGames
@@ -231,17 +235,25 @@ export default function CalendarPage() {
               {selectedGames.length > 0 ? (
                 <>
                   {canViewStaff && (
-                    <Link href={teamLink(`/staff-attendance?date=${format(selectedDate, "yyyy-MM-dd")}`)} className="flex items-center justify-between gap-3 bg-info/10 border-2 border-info/20 rounded-2xl px-4 py-3 active:scale-[0.99] transition-transform">
+                    <Link href={teamLink(`/staff-attendance?date=${selectedDateKey}`)} className={cn(
+                      "flex items-center justify-between gap-3 border-2 rounded-2xl px-4 py-3 active:scale-[0.99] transition-transform",
+                      staffAnsweredForSelected ? "bg-attend/10 border-attend/30" : "bg-info/10 border-info/20"
+                    )}>
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-info text-white flex items-center justify-center shrink-0">
+                        <div className={cn("w-10 h-10 rounded-xl text-white flex items-center justify-center shrink-0", staffAnsweredForSelected ? "bg-attend" : "bg-info")}>
                           <Users className="w-5 h-5" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[13px] font-black text-info">{format(selectedDate, "M月d日", { locale: ja })}のスタッフ出欠</p>
-                          <p className="text-[11px] text-muted font-bold">この日の午前・午後をまとめて登録</p>
+                          <p className={cn("text-[13px] font-black flex items-center gap-1.5 flex-wrap", staffAnsweredForSelected ? "text-attend" : "text-info")}>
+                            {format(selectedDate, "M月d日", { locale: ja })}のスタッフ出欠
+                            {staffAnsweredForSelected && (
+                              <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-attend/20 text-attend">✓ 回答済み</span>
+                            )}
+                          </p>
+                          <p className="text-[11px] text-muted font-bold">{staffAnsweredForSelected ? "タップで内容の確認・修正ができます" : "この日の午前・午後をまとめて登録"}</p>
                         </div>
                       </div>
-                      <ChevronRight className="w-5 h-5 text-info shrink-0" />
+                      <ChevronRight className={cn("w-5 h-5 shrink-0", staffAnsweredForSelected ? "text-attend" : "text-info")} />
                     </Link>
                   )}
                   {selectedGames.map((game, i) => (

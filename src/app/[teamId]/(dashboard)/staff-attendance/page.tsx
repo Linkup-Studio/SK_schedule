@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
 import { isStaffModeActive, touchStaffMode } from "@/lib/staff-auth";
+import { getMyStaffName, setMyStaffName } from "@/lib/my-name";
 import {
   deleteStaffAttendance,
   fetchGames,
@@ -108,7 +109,7 @@ function StaffAttendanceContent() {
   const [isStaff, setIsStaff] = useState(false);
   const [dayGames, setDayGames] = useState<Game[]>([]);
   const [staffAttendances, setStaffAttendances] = useState<StaffAttendance[]>([]);
-  const [staffName, setStaffName] = useState("");
+  const [staffName, setStaffName] = useState(() => getMyStaffName(teamSlug));
   const [staffMorningStatus, setStaffMorningStatus] = useState<AttendanceStatusValue | null>(null);
   const [staffAfternoonStatus, setStaffAfternoonStatus] = useState<AttendanceStatusValue | null>(null);
   const [staffNote, setStaffNote] = useState("");
@@ -179,9 +180,9 @@ function StaffAttendanceContent() {
       const fresh = await fetchStaffAttendancesByDate(teamSlug, attendanceDate);
       setStaffAttendances(fresh);
       if (isStaff) touchStaffMode(teamSlug);
+      setMyStaffName(teamSlug, staffName.trim());
       setSubmitSuccess(true);
       setTimeout(() => setSubmitSuccess(false), 3000);
-      setStaffName("");
       setStaffMorningStatus(null);
       setStaffAfternoonStatus(null);
       setStaffNote("");

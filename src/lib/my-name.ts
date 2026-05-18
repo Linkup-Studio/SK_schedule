@@ -20,3 +20,22 @@ export function setMyName(teamSlug: string, name: string) {
   // 他コンポーネント（カレンダー等）に変更を伝える
   window.dispatchEvent(new Event("storage"));
 }
+
+// --- スタッフ用（選手名とは別人格で扱うため別キー） ---
+
+function myStaffNameKey(teamSlug: string) {
+  return `${teamSlug}_my_staff_name`;
+}
+
+export function getMyStaffName(teamSlug: string): string {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(myStaffNameKey(teamSlug)) ?? "";
+}
+
+export function setMyStaffName(teamSlug: string, name: string) {
+  if (typeof window === "undefined") return;
+  const v = name.trim();
+  if (!v) return;
+  localStorage.setItem(myStaffNameKey(teamSlug), v);
+  window.dispatchEvent(new Event("storage"));
+}
