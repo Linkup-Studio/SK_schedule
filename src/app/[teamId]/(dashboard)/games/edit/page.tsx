@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useEffect, Suspense } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Save, Calendar, MapPin, Users, FileText, Clock, Package, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GAME_TYPES, GRADES } from "@/lib/constants";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
+import { useGoBack } from "@/hooks/use-go-back";
 import { fetchGameById, updateGame } from "@/lib/supabase-data";
 import type { GameType, GradeValue } from "@/lib/constants";
 
@@ -17,6 +17,7 @@ function EditGameContent() {
   const gameId = searchParams.get("id") ?? "";
   const { teamSlug } = useTeam();
   const teamLink = useTeamLink();
+  const goBack = useGoBack(`/games/detail?id=${gameId}`);
   const storageKey = `${teamSlug}_admin`;
 
   const [type, setType] = useState<GameType>("practice");
@@ -124,9 +125,9 @@ function EditGameContent() {
 
   return (
     <div className="px-4 py-4 space-y-4 pb-24">
-      <Link href={teamLink(`/games/detail?id=${gameId}`)} className="inline-flex items-center gap-1 text-[13px] text-muted active:text-primary transition-colors py-1 pr-2">
+      <button type="button" onClick={goBack} className="inline-flex items-center gap-1 text-[13px] text-muted active:text-primary transition-colors py-1 pr-2">
         <ArrowLeft className="w-4 h-4" />戻る
-      </Link>
+      </button>
       <h1 className="font-black text-lg flex items-center gap-1.5"><Calendar className="w-5 h-5 text-primary" />予定を編集</h1>
 
       <form onSubmit={handleSubmit} className="space-y-3">

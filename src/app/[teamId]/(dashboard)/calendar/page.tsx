@@ -29,13 +29,18 @@ export default function CalendarPage() {
   const { teamSlug } = useTeam();
   const teamLink = useTeamLink();
   const storageKey = `${teamSlug}_admin`;
+  const gradeStorageKey = `${teamSlug}_calendar_grade`;
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [summaries, setSummaries] = useState<Record<string, AttendanceSummary>>({});
   const [loading, setLoading] = useState(true);
   const [canViewStaff, setCanViewStaff] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
-  const [gradeFilter, setGradeFilter] = useState<GradeValue | null>(null);
+  const [gradeFilter, setGradeFilter] = useState<GradeValue | null>(() => {
+    if (typeof window === "undefined") return null;
+    const saved = Number(sessionStorage.getItem(gradeStorageKey));
+    return saved === 1 || saved === 2 || saved === 3 ? (saved as GradeValue) : null;
+  });
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -66,6 +71,13 @@ export default function CalendarPage() {
     window.addEventListener("storage", checkStaffAccess);
     return () => window.removeEventListener("storage", checkStaffAccess);
   }, [storageKey, teamSlug]);
+
+  // 選択した学年フィルターをセッション中だけ保持し、戻ったときに復元する
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (gradeFilter === null) sessionStorage.removeItem(gradeStorageKey);
+    else sessionStorage.setItem(gradeStorageKey, String(gradeFilter));
+  }, [gradeFilter, gradeStorageKey]);
 
   const filteredGames = gradeFilter
     ? allGames.filter((g) => g.grades.includes(gradeFilter))

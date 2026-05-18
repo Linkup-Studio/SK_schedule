@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
+import { useGoBack } from "@/hooks/use-go-back";
 import { isStaffModeActive, touchStaffMode } from "@/lib/staff-auth";
 import {
   fetchGameById,
@@ -169,6 +170,7 @@ function GameDetailContent() {
   const router = useRouter();
   const { teamSlug } = useTeam();
   const teamLink = useTeamLink();
+  const goBack = useGoBack("/calendar");
   const storageKey = `${teamSlug}_admin`;
   const id = searchParams.get("id") ?? "";
   const [isAdmin, setIsAdmin] = useState(false);
@@ -255,7 +257,7 @@ function GameDetailContent() {
 
   return (
     <div className="px-4 py-4 space-y-4 pb-20">
-      <Link href={teamLink("/calendar")} className="inline-flex items-center gap-1 text-[13px] text-muted active:text-primary transition-colors py-1 pr-2"><ArrowLeft className="w-4 h-4" />カレンダーに戻る</Link>
+      <button type="button" onClick={goBack} className="inline-flex items-center gap-1 text-[13px] text-muted active:text-primary transition-colors py-1 pr-2"><ArrowLeft className="w-4 h-4" />戻る</button>
 
       <div className="bg-gradient-hero rounded-2xl p-4 text-white relative overflow-hidden shadow-sm">
         <div className="relative z-10">

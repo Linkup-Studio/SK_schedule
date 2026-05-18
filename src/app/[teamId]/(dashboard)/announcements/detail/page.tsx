@@ -8,6 +8,7 @@ import { ja } from "date-fns/locale";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeamLink } from "@/hooks/use-team-link";
+import { useGoBack } from "@/hooks/use-go-back";
 import { fetchAnnouncementById } from "@/lib/supabase-data";
 import { GRADES } from "@/lib/constants";
 import type { Announcement } from "@/lib/types";
@@ -15,6 +16,7 @@ import type { Announcement } from "@/lib/types";
 function AnnouncementDetailContent() {
   const searchParams = useSearchParams();
   const teamLink = useTeamLink();
+  const goBack = useGoBack("/announcements");
   const id = searchParams.get("id") ?? "";
   const [ann, setAnn] = useState<Announcement | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,7 +50,7 @@ function AnnouncementDetailContent() {
 
   return (
     <div className="px-4 py-4 space-y-4 pb-20">
-      <Link href={teamLink("/announcements")} className="inline-flex items-center gap-1 text-[13px] text-muted active:text-primary transition-colors py-1 pr-2"><ArrowLeft className="w-4 h-4" />お知らせ一覧に戻る</Link>
+      <button type="button" onClick={goBack} className="inline-flex items-center gap-1 text-[13px] text-muted active:text-primary transition-colors py-1 pr-2"><ArrowLeft className="w-4 h-4" />戻る</button>
 
       <article className="bg-surface rounded-2xl border border-border overflow-hidden animate-fade-in-up shadow-sm">
         <div className="bg-gradient-subtle p-4 border-b border-border/50">
