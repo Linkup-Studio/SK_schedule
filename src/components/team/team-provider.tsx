@@ -54,13 +54,21 @@ export function TeamProvider({
 
   useEffect(() => {
     async function loadTeam() {
-      const { data, error } = await supabase
+      // 新スキーマ(slug列)優先、無ければ旧スキーマ(id=スラッグ)にフォールバック
+      const bySlug = await supabase
         .from("teams")
         .select("*")
-        .eq("id", teamSlug)
-        .single();
+        .eq("slug", teamSlug)
+        .maybeSingle();
+      const { data } = bySlug.data
+        ? bySlug
+        : await supabase
+            .from("teams")
+            .select("*")
+            .eq("id", teamSlug)
+            .maybeSingle();
 
-      if (!error && data) {
+      if (data) {
         const teamRow = data as {
           id: string;
           slug?: string | null;

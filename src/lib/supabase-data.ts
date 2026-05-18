@@ -92,15 +92,29 @@ const teamIdCache: Record<string, string> = {};
 export async function resolveTeamId(teamSlug: string): Promise<string | null> {
   if (teamIdCache[teamSlug]) return teamIdCache[teamSlug];
 
-  const { data, error } = await supabase
+  // 新スキーマ: slug 列で解決（teams.id は UUID）
+  const bySlug = await supabase
+    .from("teams")
+    .select("id")
+    .eq("slug", teamSlug)
+    .maybeSingle();
+  if (bySlug.data?.id) {
+    teamIdCache[teamSlug] = bySlug.data.id;
+    return bySlug.data.id;
+  }
+
+  // 旧スキーマ互換: id がスラッグそのもの（slug 列が無い/未設定の環境）
+  const byId = await supabase
     .from("teams")
     .select("id")
     .eq("id", teamSlug)
-    .single();
+    .maybeSingle();
+  if (byId.data?.id) {
+    teamIdCache[teamSlug] = byId.data.id;
+    return byId.data.id;
+  }
 
-  if (error || !data) return null;
-  teamIdCache[teamSlug] = data.id;
-  return data.id;
+  return null;
 }
 
 // =============================================
