@@ -222,7 +222,7 @@ function GameDetailContent() {
       status,
       morningStatus,
       afternoonStatus,
-      reason: (morningStatus !== "attend" || afternoonStatus !== "attend") ? reason : undefined,
+      reason: reason.trim() ? reason.trim() : undefined,
     });
     setSubmitting(false);
     if (result) {
