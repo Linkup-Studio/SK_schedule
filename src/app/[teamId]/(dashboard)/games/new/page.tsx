@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Save, Calendar, MapPin, Users, FileText, Clock, Package, Loader2, Copy } from "lucide-react";
+import { ArrowLeft, Save, Calendar, MapPin, Users, FileText, Clock, Package, Loader2, Copy, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GAME_TYPES, GRADES } from "@/lib/constants";
 import { useTeam } from "@/components/team/team-provider";
@@ -191,14 +191,17 @@ function NewGameContent() {
             </FormField>
             <FormField icon={<Calendar className="w-4 h-4 text-muted" />} label="終了日時">
               <input type="datetime-local" value={dateEnd} onChange={(e) => setDateEnd(e.target.value)} className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input appearance-none" />
+              <ClearButton show={!!dateEnd} onClear={() => setDateEnd("")} />
             </FormField>
           </div>
           <div className="grid grid-cols-2 gap-3 pt-2">
             <FormField icon={<Clock className="w-4 h-4 text-warning" />} label="集合時間">
               <input type="time" value={meetingTime} onChange={(e) => setMeetingTime(e.target.value)} className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input appearance-none" />
+              <ClearButton show={!!meetingTime} onClear={() => setMeetingTime("")} />
             </FormField>
             <FormField icon={<Calendar className="w-4 h-4 text-muted" />} label="出欠締切">
               <input type="date" value={rsvpDeadline} onChange={(e) => setRsvpDeadline(e.target.value)} className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input appearance-none" />
+              <ClearButton show={!!rsvpDeadline} onClear={() => setRsvpDeadline("")} />
             </FormField>
           </div>
         </div>
@@ -243,6 +246,15 @@ function FormField({ icon, label, required, children }: { icon: React.ReactNode;
       <label className="flex items-center gap-1.5 text-[11px] font-bold text-muted pl-0.5">{icon}{label}{required && <span className="text-error">*</span>}</label>
       {children}
     </div>
+  );
+}
+
+function ClearButton({ show, onClear }: { show: boolean; onClear: () => void }) {
+  if (!show) return null;
+  return (
+    <button type="button" onClick={onClear} className="inline-flex items-center gap-0.5 text-[11px] font-bold text-muted active:text-error pl-0.5">
+      <X className="w-3 h-3" />クリア（空にする）
+    </button>
   );
 }
 
