@@ -1,21 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft, Save, Calendar, MapPin, Users, FileText, Clock, Package, Loader2 } from "lucide-react";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Save, Calendar, MapPin, Users, FileText, Clock, Package, Loader2, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GAME_TYPES, GRADES } from "@/lib/constants";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
 import { useGoBack } from "@/hooks/use-go-back";
-import { createGame, createAnnouncement } from "@/lib/supabase-data";
+import { createGame, createAnnouncement, fetchGameById } from "@/lib/supabase-data";
 import type { GameType, GradeValue } from "@/lib/constants";
 
 const getGameTypeLabel = (value: GameType) =>
   GAME_TYPES.find((gameType) => gameType.value === value)?.label ?? "予定";
 
-export default function NewGamePage() {
+function NewGameContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const copyId = searchParams.get("copy") ?? "";
   const { teamSlug } = useTeam();
   const teamLink = useTeamLink();
   const goBack = useGoBack("/calendar");
@@ -25,6 +27,7 @@ export default function NewGamePage() {
   const [selectedGrades, setSelectedGrades] = useState<GradeValue[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [copyLoading, setCopyLoading] = useState(Boolean(copyId));
 
   const [title, setTitle] = useState("");
   const [opponent, setOpponent] = useState("");
@@ -39,18 +42,40 @@ export default function NewGamePage() {
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    async function checkAdmin() {
+    async function init() {
       const adminState = localStorage.getItem(storageKey) === "true";
       if (!adminState) {
         router.replace(teamLink("/calendar"));
-      } else {
-        setIsAuthorized(true);
+        return;
+      }
+      setIsAuthorized(true);
+
+      // 過去の予定をコピーして再利用（?copy=<予定ID>）
+      if (copyId) {
+        const game = await fetchGameById(copyId);
+        if (game) {
+          setType(game.type);
+          setSelectedGrades(game.grades);
+          setTitle(game.title);
+          setOpponent(game.opponent ?? "");
+          setVenueName(game.venueName);
+          setVenueAddress(game.venueAddress ?? "");
+          setMeetingPlace(game.meetingPlace ?? "");
+          setMeetingTime(game.meetingTime ?? "");
+          setItems(game.items ?? "");
+          setNotes(game.notes ?? "");
+          // 日時（開始・終了・出欠締切）は引き継がず、空のまま新しく入力してもらう
+        }
+        setCopyLoading(false);
       }
     }
-    checkAdmin();
-  }, [router, storageKey, teamLink]);
+    init();
+  }, [router, storageKey, teamLink, copyId]);
 
   if (!isAuthorized) return null;
+  if (copyLoading) {
+    return (<div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>);
+  }
 
   const toggleGrade = (grade: GradeValue) => {
     setSelectedGrades((prev) =>
@@ -117,6 +142,13 @@ export default function NewGamePage() {
         <ArrowLeft className="w-4 h-4" />戻る
       </button>
       <h1 className="font-black text-lg flex items-center gap-1.5"><Calendar className="w-5 h-5 text-primary" />予定を登録</h1>
+
+      {copyId && (
+        <div className="flex items-start gap-2 rounded-xl border border-primary/20 bg-primary-50/60 px-3.5 py-2.5">
+          <Copy className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+          <p className="text-[12px] font-bold text-primary leading-relaxed">過去の予定をコピーしました。<br />日付・時間を入れ替えて登録してください。</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="bg-surface rounded-2xl border border-border p-3.5 space-y-3 shadow-sm animate-fade-in-up">
@@ -211,5 +243,13 @@ function FormField({ icon, label, required, children }: { icon: React.ReactNode;
       <label className="flex items-center gap-1.5 text-[11px] font-bold text-muted pl-0.5">{icon}{label}{required && <span className="text-error">*</span>}</label>
       {children}
     </div>
+  );
+}
+
+export default function NewGamePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>}>
+      <NewGameContent />
+    </Suspense>
   );
 }

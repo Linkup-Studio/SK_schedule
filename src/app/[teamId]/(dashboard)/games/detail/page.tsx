@@ -293,6 +293,12 @@ function GameDetailContent() {
         </div>
       )}
 
+      {isAdmin && (
+        <Link href={teamLink(`/games/new?copy=${game.id}`)} className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 border-dashed border-primary/30 bg-primary-50/50 text-primary text-[13px] font-bold active:scale-95 transition-all">
+          <Copy className="w-3.5 h-3.5" />この予定をコピーして新規登録
+        </Link>
+      )}
+
       <div className="bg-surface rounded-2xl border border-border divide-y divide-border/50 shadow-sm overflow-hidden">
         <InfoRow icon={<Calendar className="w-4.5 h-4.5 text-primary" />} label="日時" value={<div><p className="font-bold text-[14px]">{safeFormat(game.dateStart, "M月d日（E）")}</p><p className="text-[12px] text-muted mt-0.5">{safeFormat(game.dateStart, "HH:mm")}{game.dateEnd && ` 〜 ${safeFormat(game.dateEnd, "HH:mm")}`}</p></div>} />
         {game.meetingTime && (<InfoRow icon={<Clock className="w-4.5 h-4.5 text-warning" />} label="集合" value={<div><p className="font-bold text-[14px]">{game.meetingTime}</p>{game.meetingPlace && <p className="text-[12px] text-muted mt-0.5">{game.meetingPlace}</p>}</div>} />)}
