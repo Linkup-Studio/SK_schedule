@@ -43,6 +43,10 @@ export const NAV_ITEMS = [
 ] as const;
 
 export type GameType = (typeof GAME_TYPES)[number]["value"];
+
+/** 公式戦・練習試合は午前/午後ではなく◯×の1択で出欠を回答する */
+export const isSimpleAttendanceType = (type: GameType) =>
+  type === "official" || type === "practice";
 export type AttendanceStatusValue = (typeof ATTENDANCE_STATUS)[number]["value"];
 export type UserRole = (typeof ROLES)[number]["value"];
 export type GradeValue = (typeof GRADES)[number]["value"];

@@ -6,6 +6,7 @@ import { ja } from "date-fns/locale";
 import { MapPin, Clock, Users, ChevronRight, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GameTypeBadge, GradeBadge, AttendanceSummaryBar } from "@/components/common/badges";
+import { isSimpleAttendanceType } from "@/lib/constants";
 import type { Game, AttendanceSummary } from "@/lib/types";
 
 function getRelativeDate(dateStr: string): string {
@@ -77,7 +78,7 @@ export function GameCard({ game, index = 0, attendanceSummary, teamSlug, answere
               <span className="flex items-center gap-1 text-[10px] text-warning font-bold bg-warning/10 px-1.5 py-0.5 rounded"><AlertTriangle className="w-2.5 h-2.5" />未回答 {summary.noAnswer}</span>
             )}
           </div>
-          <AttendanceSummaryBar {...summary} />
+          <AttendanceSummaryBar {...summary} simple={isSimpleAttendanceType(game.type)} />
         </div>
       )}
     </Link>

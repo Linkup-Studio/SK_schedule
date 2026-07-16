@@ -19,6 +19,7 @@ import { useTeamLink } from "@/hooks/use-team-link";
 import { fetchUpcomingGames, fetchAnnouncements, fetchAttendanceSummary, fetchAnsweredGameIds } from "@/lib/supabase-data";
 import { getMyName } from "@/lib/my-name";
 import { GameTypeBadge, GradeBadge, AttendanceSummaryBar } from "@/components/common/badges";
+import { isSimpleAttendanceType } from "@/lib/constants";
 import type { Game, Announcement, AttendanceSummary } from "@/lib/types";
 
 export default function DashboardPage() {
@@ -163,7 +164,7 @@ export default function DashboardPage() {
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted shrink-0 mt-2" />
                   </div>
-                  <AttendanceSummaryBar {...summary} />
+                  <AttendanceSummaryBar {...summary} simple={isSimpleAttendanceType(game.type)} />
                 </Link>
               );
             })}

@@ -126,6 +126,7 @@ export function AttendanceSummaryBar({
   total,
   morning,
   afternoon,
+  simple = false,
 }: {
   attend: number;
   absent: number;
@@ -134,9 +135,11 @@ export function AttendanceSummaryBar({
   total: number;
   morning?: { attend: number; absent: number; undecided: number; noAnswer: number; total: number };
   afternoon?: { attend: number; absent: number; undecided: number; noAnswer: number; total: number };
+  /** 公式戦・練習試合は◯×の1択回答のため1段表示にする */
+  simple?: boolean;
 }) {
-  // 午前/午後データがある場合は常に2段表示
-  const hasPeriods = morning && afternoon;
+  // 午前/午後データがある場合は常に2段表示（◯×回答の種別を除く）
+  const hasPeriods = !simple && morning && afternoon;
 
   if (hasPeriods) {
     return (

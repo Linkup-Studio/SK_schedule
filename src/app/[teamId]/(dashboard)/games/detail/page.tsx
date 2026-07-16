@@ -24,6 +24,7 @@ import {
   fetchPlayerCountsByGrade,
 } from "@/lib/supabase-data";
 import { GameTypeBadge, GradeBadge } from "@/components/common/badges";
+import { isSimpleAttendanceType } from "@/lib/constants";
 import type { AttendanceStatusValue } from "@/lib/constants";
 import type { Game, Attendance } from "@/lib/types";
 import { Suspense } from "react";
@@ -43,6 +44,11 @@ const STATUS_OPTIONS = [
   { status: "undecided" as AttendanceStatusValue, icon: "△", label: "未定", activeClass: "bg-undecided text-white shadow-undecided/30 border-undecided" },
 ] as const;
 
+// 公式戦・練習試合用: ◯×の2択（未定なし）
+const SIMPLE_STATUS_OPTIONS = STATUS_OPTIONS.filter(
+  (config) => config.status === "attend" || config.status === "absent"
+);
+
 function getOverallStatus(morning: AttendanceStatusValue, afternoon: AttendanceStatusValue): AttendanceStatusValue {
   if (morning === "attend" && afternoon === "attend") return "attend";
   if (morning === "absent" && afternoon === "absent") return "absent";
@@ -51,13 +57,14 @@ function getOverallStatus(morning: AttendanceStatusValue, afternoon: AttendanceS
 
 function getPeriodSummary<T extends { status: AttendanceStatusValue; morningStatus?: AttendanceStatusValue; afternoonStatus?: AttendanceStatusValue }>(
   rows: T[],
-  period: "morning" | "afternoon",
+  period: "morning" | "afternoon" | "overall",
   total?: number
 ) {
-  const key = period === "morning" ? "morningStatus" : "afternoonStatus";
-  const attend = rows.filter((a) => (a[key] ?? a.status) === "attend").length;
-  const absent = rows.filter((a) => (a[key] ?? a.status) === "absent").length;
-  const undecided = rows.filter((a) => (a[key] ?? a.status) === "undecided").length;
+  const key = period === "morning" ? "morningStatus" : period === "afternoon" ? "afternoonStatus" : undefined;
+  const statusOf = (a: T) => (key ? (a[key] ?? a.status) : a.status);
+  const attend = rows.filter((a) => statusOf(a) === "attend").length;
+  const absent = rows.filter((a) => statusOf(a) === "absent").length;
+  const undecided = rows.filter((a) => statusOf(a) === "undecided").length;
   const noAnswer = total === undefined ? 0 : Math.max(0, total - attend - absent - undecided);
   return { attend, absent, undecided, noAnswer };
 }
@@ -66,16 +73,18 @@ function PeriodStatusPicker({
   label,
   value,
   onChange,
+  options = STATUS_OPTIONS,
 }: {
   label: string;
   value: AttendanceStatusValue | null;
   onChange: (status: AttendanceStatusValue) => void;
+  options?: readonly (typeof STATUS_OPTIONS)[number][];
 }) {
   return (
     <div className="space-y-2">
       <p className="text-[11px] font-black text-muted ml-1">{label}</p>
-      <div className="grid grid-cols-3 gap-2">
-        {STATUS_OPTIONS.map((config) => (
+      <div className={cn("grid gap-2", options.length === 2 ? "grid-cols-2" : "grid-cols-3")}>
+        {options.map((config) => (
           <button
             key={config.status}
             type="button"
@@ -100,15 +109,19 @@ function PeriodSummaryRows({
   morning,
   afternoon,
   showNoAnswer = true,
+  simple = false,
 }: {
   morning: { attend: number; absent: number; undecided: number; noAnswer: number };
   afternoon: { attend: number; absent: number; undecided: number; noAnswer: number };
   showNoAnswer?: boolean;
+  simple?: boolean;
 }) {
-  const rows = [
-    { label: "午前", summary: morning },
-    { label: "午後", summary: afternoon },
-  ];
+  const rows = simple
+    ? [{ label: "全体", summary: morning }]
+    : [
+        { label: "午前", summary: morning },
+        { label: "午後", summary: afternoon },
+      ];
 
   return (
     <div className="space-y-2">
@@ -139,9 +152,11 @@ function StatBox({ label, value, className }: { label: string; value: number; cl
 function PeriodStatusText({
   morning,
   afternoon,
+  simple = false,
 }: {
   morning: AttendanceStatusValue;
   afternoon: AttendanceStatusValue;
+  simple?: boolean;
 }) {
   const colorClasses = {
     attend: "bg-attend/10 text-attend border-attend/30",
@@ -157,6 +172,15 @@ function PeriodStatusText({
       </span>
     );
   };
+
+  if (simple) {
+    const config = STATUS_OPTIONS.find((s) => s.status === morning);
+    return (
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {pill(config?.label ?? "", morning)}
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
@@ -211,9 +235,11 @@ function GameDetailContent() {
     load();
   }, [id, storageKey, teamSlug]);
 
+  const simpleAttendance = game ? isSimpleAttendanceType(game.type) : false;
+
   const handleFinalSubmit = async () => {
     if (!playerName.trim()) { alert("選手のお名前を入力してください"); return; }
-    if (!morningStatus || !afternoonStatus) { alert("午前・午後それぞれの出欠を選択してください"); return; }
+    if (!morningStatus || !afternoonStatus) { alert(simpleAttendance ? "出欠（◯か×）を選択してください" : "午前・午後それぞれの出欠を選択してください"); return; }
     const status = getOverallStatus(morningStatus, afternoonStatus);
     setSubmitting(true);
     const result = await upsertAttendance(teamSlug, {
@@ -254,7 +280,7 @@ function GameDetailContent() {
   const isPast = isValidDate && dateStart < new Date();
   const daysUntil = isValidDate ? differenceInDays(dateStart, new Date()) : -1;
   const totalPlayers = game.grades.reduce((sum, g) => sum + (gradeCounts[String(g)] ?? 0), 0);
-  const playerMorningSummary = getPeriodSummary(attendances, "morning", totalPlayers);
+  const playerMorningSummary = getPeriodSummary(attendances, simpleAttendance ? "overall" : "morning", totalPlayers);
   const playerAfternoonSummary = getPeriodSummary(attendances, "afternoon", totalPlayers);
 
   return (
@@ -330,14 +356,25 @@ function GameDetailContent() {
           <div className="space-y-3">
             <div><label className="text-[11px] font-bold text-muted ml-1 mb-1 block">選手のお名前（必須）</label><input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="例: 佐藤 太郎" className="w-full bg-background border border-border px-4 py-3 rounded-xl text-[15px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" /></div>
             <div className="space-y-3">
-              <PeriodStatusPicker label="午前" value={morningStatus} onChange={setMorningStatus} />
-              <PeriodStatusPicker label="午後" value={afternoonStatus} onChange={setAfternoonStatus} />
+              {simpleAttendance ? (
+                <PeriodStatusPicker
+                  label="出欠"
+                  value={morningStatus}
+                  onChange={(status) => { setMorningStatus(status); setAfternoonStatus(status); }}
+                  options={SIMPLE_STATUS_OPTIONS}
+                />
+              ) : (
+                <>
+                  <PeriodStatusPicker label="午前" value={morningStatus} onChange={setMorningStatus} />
+                  <PeriodStatusPicker label="午後" value={afternoonStatus} onChange={setAfternoonStatus} />
+                </>
+              )}
               {morningStatus && afternoonStatus && (() => {
                 const allAttend = morningStatus === "attend" && afternoonStatus === "attend";
                 return (
                   <div className={cn("rounded-xl p-3 animate-fade-in-up border", allAttend ? "bg-attend/5 border-attend/20" : "bg-amber-50/50 border-amber-100")}>
                     <label className={cn("text-[10px] font-bold flex items-center gap-1 mb-1", allAttend ? "text-attend" : "text-undecided")}>{allAttend ? "コメント（任意）" : "理由・補足（任意）"}</label>
-                    <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder={allAttend ? "例: 少し遅れますが参加します" : "例: 午後は塾のため欠席"} className={cn("w-full px-3 py-2.5 rounded-xl border bg-white text-[13px] focus:outline-none focus:ring-2 shadow-sm", allAttend ? "border-attend/30 focus:ring-attend/30" : "border-amber-200 focus:ring-undecided/30")} />
+                    <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} placeholder={allAttend ? "例: 少し遅れますが参加します" : simpleAttendance ? "例: 体調不良のため欠席" : "例: 午後は塾のため欠席"} className={cn("w-full px-3 py-2.5 rounded-xl border bg-white text-[13px] focus:outline-none focus:ring-2 shadow-sm", allAttend ? "border-attend/30 focus:ring-attend/30" : "border-amber-200 focus:ring-undecided/30")} />
                   </div>
                 );
               })()}
@@ -350,7 +387,7 @@ function GameDetailContent() {
 
       <div className="bg-surface rounded-2xl border border-border p-4 space-y-3 shadow-sm">
         <h2 className="font-black text-[15px] flex items-center gap-1.5"><Users className="w-4.5 h-4.5 text-primary" />回答済み一覧</h2>
-        <PeriodSummaryRows morning={playerMorningSummary} afternoon={playerAfternoonSummary} />
+        <PeriodSummaryRows morning={playerMorningSummary} afternoon={playerAfternoonSummary} simple={simpleAttendance} />
         <div className="pt-2">
           <div className="divide-y divide-border/50 rounded-xl border border-border overflow-hidden">
             {attendances.length > 0 ? attendances.map((att) => (
@@ -358,7 +395,7 @@ function GameDetailContent() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <p className="text-[13px] font-bold truncate">{att.userName}</p>
-                    <PeriodStatusText morning={att.morningStatus ?? att.status} afternoon={att.afternoonStatus ?? att.status} />
+                    <PeriodStatusText morning={simpleAttendance ? att.status : (att.morningStatus ?? att.status)} afternoon={simpleAttendance ? att.status : (att.afternoonStatus ?? att.status)} simple={simpleAttendance} />
                     {att.reason && (() => {
                       const m = att.morningStatus ?? att.status;
                       const a = att.afternoonStatus ?? att.status;
