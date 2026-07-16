@@ -44,9 +44,9 @@ export const NAV_ITEMS = [
 
 export type GameType = (typeof GAME_TYPES)[number]["value"];
 
-/** 公式戦・練習試合は午前/午後ではなく◯×の1択で出欠を回答する */
+/** 公式戦・練習試合・その他は午前/午後ではなく◯×の1択で出欠を回答する */
 export const isSimpleAttendanceType = (type: GameType) =>
-  type === "official" || type === "practice";
+  type === "official" || type === "practice" || type === "other";
 export type AttendanceStatusValue = (typeof ATTENDANCE_STATUS)[number]["value"];
 export type UserRole = (typeof ROLES)[number]["value"];
 export type GradeValue = (typeof GRADES)[number]["value"];
