@@ -246,7 +246,7 @@ function StaffAttendanceContent() {
                 <div className="min-w-0 flex-1 space-y-1.5">
                   <p className="text-[13px] font-bold truncate">{att.staffName}</p>
                   <PeriodStatusText morning={att.morningStatus ?? att.status} afternoon={att.afternoonStatus ?? att.status} />
-                  {att.note && <p className="text-[9px] text-info font-medium truncate max-w-[180px]">メモ: {att.note}</p>}
+                  {att.note && <p className="text-[9px] text-info font-medium break-words">メモ: {att.note}</p>}
                 </div>
                 <div className="shrink-0 flex items-center gap-1.5">
                   {isAdmin && (

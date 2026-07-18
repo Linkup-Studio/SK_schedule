@@ -400,7 +400,7 @@ function GameDetailContent() {
                       const m = att.morningStatus ?? att.status;
                       const a = att.afternoonStatus ?? att.status;
                       const allAttend = m === "attend" && a === "attend";
-                      return <p className={cn("text-[9px] font-medium truncate max-w-[180px]", allAttend ? "text-muted" : "text-error")}>{allAttend ? "コメント" : "理由"}: {att.reason}</p>;
+                      return <p className={cn("text-[9px] font-medium break-words", allAttend ? "text-muted" : "text-error")}>{allAttend ? "コメント" : "理由"}: {att.reason}</p>;
                     })()}
                   </div>
                   <div className="shrink-0 flex items-center gap-1.5">
