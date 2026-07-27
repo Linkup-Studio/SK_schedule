@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Inter } from "next/font/google";
+import { SwRegister } from "@/components/pwa/sw-register";
 import "./globals.css";
 
 const notoSansJP = Noto_Sans_JP({
@@ -28,7 +29,9 @@ export const metadata: Metadata = {
   title: "BallPark | 一色SKクラブ",
   description: "一色SKクラブの予定管理・出欠確認アプリ",
   appleWebApp: {
-    capable: false,
+    // iOSのプッシュ通知は「ホーム画面に追加」したWebアプリのみ対応のためtrue
+    capable: true,
+    statusBarStyle: "default",
     title: "BallPark",
   },
   formatDetection: {
@@ -49,7 +52,10 @@ export default function RootLayout({
       <head>
         <meta name="apple-mobile-web-app-title" content="BallPark" />
       </head>
-      <body>{children}</body>
+      <body>
+        <SwRegister />
+        {children}
+      </body>
     </html>
   );
 }

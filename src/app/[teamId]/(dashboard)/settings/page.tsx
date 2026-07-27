@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Settings, Users, CheckCircle2 } from "lucide-react";
 import { useTeam } from "@/components/team/team-provider";
+import { PushNotificationCard } from "@/components/settings/push-notification-card";
 import { activateStaffMode, deactivateStaffMode, isStaffModeActive } from "@/lib/staff-auth";
 
 export default function SettingsPage() {
@@ -45,6 +46,8 @@ export default function SettingsPage() {
         <Settings className="w-5 h-5 text-primary" />
         <h1 className="font-black text-lg">管理設定</h1>
       </div>
+
+      <PushNotificationCard />
 
       <div className="bg-surface rounded-2xl border border-border p-4 shadow-sm">
         <div className="flex items-center gap-2 text-primary font-bold mb-3">

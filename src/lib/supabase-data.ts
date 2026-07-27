@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { sendPushToTeam } from "./push";
 import type { Game, Attendance, Announcement, AttendanceSummary, Player, StaffAttendance } from "./types";
 import type { GradeValue, GameType, AttendanceStatusValue } from "./constants";
 
@@ -602,6 +603,18 @@ export async function createAnnouncement(teamSlug: string, input: {
     console.error("お知らせの投稿に失敗しました:", error.message);
     return null;
   }
+
+  if (data) {
+    // 購読者へプッシュ通知（失敗しても投稿自体は成功扱い）
+    const bodyPreview = input.body.replace(/\s+/g, " ").trim();
+    void sendPushToTeam(teamSlug, {
+      title: input.title,
+      body: bodyPreview.length > 100 ? `${bodyPreview.slice(0, 100)}…` : bodyPreview,
+      url: `/${teamSlug}/announcements/detail/?id=${data.id}`,
+      tag: `announcement-${data.id}`,
+    });
+  }
+
   return data ? toAnnouncement(data) : null;
 }
 
