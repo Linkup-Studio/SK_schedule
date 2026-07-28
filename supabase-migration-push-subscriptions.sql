@@ -4,9 +4,10 @@
 -- ※ Supabase SQL Editor にコピペして実行してください
 -- ※ 各端末のプッシュ購読情報を保存するテーブルを作成します
 
+-- ※ 本番の teams.id は text型（旧スキーマ）のため team_id も text
 create table if not exists push_subscriptions (
   id uuid primary key default gen_random_uuid(),
-  team_id uuid not null references teams(id) on delete cascade,
+  team_id text not null references teams(id) on delete cascade,
   endpoint text not null unique,      -- プッシュ配信先URL（端末×ブラウザごとに一意）
   p256dh text not null,               -- 暗号化用の公開鍵
   auth text not null,                 -- 認証シークレット
