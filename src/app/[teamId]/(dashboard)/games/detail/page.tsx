@@ -7,7 +7,7 @@ import { format, differenceInDays } from "date-fns";
 import { ja } from "date-fns/locale";
 import {
   ArrowLeft, MapPin, Clock, Calendar, Users, Package, FileText,
-  ExternalLink, Copy, CheckCheck, Loader2, Pencil, Trash2, ChevronRight,
+  ExternalLink, Copy, CheckCheck, Loader2, Pencil, Trash2, ChevronRight, Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
@@ -261,12 +261,31 @@ function GameDetailContent() {
     } else { alert("送信に失敗しました。もう一度お試しください。"); }
   };
 
-  const handleCopyInfo = useCallback(() => {
-    if (!game) return;
+  const buildInfoText = useCallback(() => {
+    if (!game) return "";
     const dateStart = new Date(game.dateStart);
-    const text = [`📅 ${game.title}`, `日時: ${safeFormat(dateStart, "M月d日（E） HH:mm")}`, game.meetingTime ? `集合: ${game.meetingTime}${game.meetingPlace ? ` @ ${game.meetingPlace}` : ""}` : "", `会場: ${game.venueName}`, game.venueAddress ? `住所: ${game.venueAddress}` : "", game.items ? `持ち物: ${game.items}` : ""].filter(Boolean).join("\n");
-    navigator.clipboard.writeText(text).then(() => { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); });
+    return [`📅 ${game.title}`, `日時: ${safeFormat(dateStart, "M月d日（E） HH:mm")}`, game.meetingTime ? `集合: ${game.meetingTime}${game.meetingPlace ? ` @ ${game.meetingPlace}` : ""}` : "", `会場: ${game.venueName}`, game.venueAddress ? `住所: ${game.venueAddress}` : "", game.items ? `持ち物: ${game.items}` : ""].filter(Boolean).join("\n");
   }, [game]);
+
+  const handleCopyInfo = useCallback(() => {
+    const text = buildInfoText();
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => { setShowCopied(true); setTimeout(() => setShowCopied(false), 2000); });
+  }, [buildInfoText]);
+
+  const handleShare = useCallback(async () => {
+    const text = buildInfoText();
+    if (!text) return;
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ text, url: window.location.href });
+      } catch {
+        // ユーザーが共有シートを閉じた場合は何もしない
+      }
+    } else {
+      handleCopyInfo();
+    }
+  }, [buildInfoText, handleCopyInfo]);
 
   if (loading) {
     return (<div className="flex items-center justify-center h-[60vh]"><div className="text-center space-y-3"><Loader2 className="w-8 h-8 text-primary animate-spin mx-auto" /><p className="text-sm text-muted font-bold">読み込み中...</p></div></div>);
@@ -306,6 +325,7 @@ function GameDetailContent() {
         <button onClick={handleCopyInfo} className={cn("flex-1 flex items-center justify-center gap-1.5 py-3 rounded-xl border border-border bg-surface text-[13px] font-bold transition-all shadow-sm touch-active", showCopied ? "bg-green-50 border-green-200 text-attend" : "active:bg-surface-variant text-muted")}>
           {showCopied ? (<><CheckCheck className="w-4 h-4" />コピー完了</>) : (<><Copy className="w-4 h-4" />情報をコピー</>)}
         </button>
+        <button onClick={handleShare} className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border border-border bg-surface text-[13px] font-bold text-muted active:bg-surface-variant transition-all shadow-sm touch-active"><Share2 className="w-4 h-4" />共有</button>
       </div>
 
       {isAdmin && (
