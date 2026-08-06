@@ -18,6 +18,7 @@ import {
   upsertStaffAttendance,
 } from "@/lib/supabase-data";
 import { GameTypeBadge, GradeBadge } from "@/components/common/badges";
+import { renderStaffAttendanceImage } from "@/lib/attendance-image";
 import type { AttendanceStatusValue } from "@/lib/constants";
 import type { Game, StaffAttendance } from "@/lib/types";
 
@@ -146,7 +147,7 @@ function PeriodStatusText({ morning, afternoon }: { morning: AttendanceStatusVal
 function StaffAttendanceContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { teamSlug } = useTeam();
+  const { team, teamSlug } = useTeam();
   const teamLink = useTeamLink();
   const storageKey = `${teamSlug}_admin`;
   const attendanceDate = searchParams.get("date") ?? "";
@@ -163,6 +164,7 @@ function StaffAttendanceContent() {
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const dateLabel = useMemo(() => {
     if (!attendanceDate) return "";
@@ -302,7 +304,8 @@ function StaffAttendanceContent() {
       .join("\n\n");
   };
 
-  const handleShare = async () => {
+  /** 画像が使えない環境向けのフォールバック（テキスト共有 → クリップボード） */
+  const shareAsText = async () => {
     const text = buildShareText();
     if (typeof navigator.share === "function") {
       try {
@@ -318,6 +321,50 @@ function StaffAttendanceContent() {
       setTimeout(() => setShareCopied(false), 2000);
     } catch {
       alert("この環境では共有・コピーができません。");
+    }
+  };
+
+  const handleShare = async () => {
+    setSharing(true);
+    try {
+      const blob = await renderStaffAttendanceImage({
+        teamName: team?.name ?? "",
+        dateLabel,
+        games: dayGames.map((game) => ({
+          time: format(new Date(game.dateStart), "HH:mm", { locale: ja }),
+          title: game.title,
+          venue: game.venueName ?? "",
+        })),
+        rows: staffAttendances.map((att) => ({
+          name: att.staffName,
+          morning: att.morningStatus ?? att.status,
+          afternoon: att.afternoonStatus ?? att.status,
+          note: att.note ?? undefined,
+        })),
+      });
+
+      const file = blob ? new File([blob], `スタッフ出欠_${attendanceDate}.png`, { type: "image/png" }) : null;
+      if (file && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file] });
+        return;
+      }
+      // 画像共有に非対応（PCブラウザなど）ならダウンロードさせる
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `スタッフ出欠_${attendanceDate}.png`;
+        link.click();
+        URL.revokeObjectURL(url);
+        return;
+      }
+      await shareAsText();
+    } catch (error) {
+      // 共有シートを閉じただけならエラー表示は不要
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      await shareAsText();
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -371,8 +418,8 @@ function StaffAttendanceContent() {
         <div className="flex items-center justify-between gap-2">
           <h2 className="font-black text-[15px] flex items-center gap-1.5"><Users className="w-4.5 h-4.5 text-info" />回答済みスタッフ</h2>
           {staffAttendances.length > 0 && (
-            <button type="button" onClick={handleShare} className={cn("shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border text-[12px] font-bold transition-all shadow-sm touch-active", shareCopied ? "bg-attend/10 border-attend/30 text-attend" : "border-border bg-surface text-muted active:bg-surface-variant")}>
-              {shareCopied ? (<><CheckCheck className="w-3.5 h-3.5" />コピー完了</>) : (<><Share2 className="w-3.5 h-3.5" />共有</>)}
+            <button type="button" onClick={handleShare} disabled={sharing} className={cn("shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border text-[12px] font-bold transition-all shadow-sm touch-active", shareCopied ? "bg-attend/10 border-attend/30 text-attend" : "border-border bg-surface text-muted active:bg-surface-variant", sharing && "opacity-60")}>
+              {sharing ? (<><Loader2 className="w-3.5 h-3.5 animate-spin" />作成中</>) : shareCopied ? (<><CheckCheck className="w-3.5 h-3.5" />コピー完了</>) : (<><Share2 className="w-3.5 h-3.5" />画像で共有</>)}
             </button>
           )}
         </div>
