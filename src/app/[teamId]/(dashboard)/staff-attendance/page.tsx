@@ -41,6 +41,50 @@ function getLocalDateKey(dateValue: string | Date) {
   return format(typeof dateValue === "string" ? new Date(dateValue) : dateValue, "yyyy-MM-dd");
 }
 
+/** LINEの吹き出しが折り返さない1行の目安（全角換算） */
+const SHARE_LINE_WIDTH = 13;
+
+/** 行頭に置きたくない文字（簡易禁則処理） */
+const NO_LINE_START = "、。，．）」』！？・…ー";
+
+function getTextWidth(text: string) {
+  return [...text].reduce((width, char) => width + (/[\x20-\x7E]/.test(char) ? 0.5 : 1), 0);
+}
+
+/** LINE側で中途半端に折り返されないよう、あらかじめ改行を入れる */
+function wrapText(text: string, indent = "") {
+  const limit = SHARE_LINE_WIDTH - getTextWidth(indent);
+  const lines: string[] = [];
+  let current = "";
+  for (const char of text) {
+    if (current && getTextWidth(current + char) > limit && !NO_LINE_START.includes(char)) {
+      lines.push(current);
+      current = char;
+    } else {
+      current += char;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.map((line) => indent + line).join("\n");
+}
+
+/** 名前を「・」で連結しつつ、名前の途中で折り返されない長さで改行する */
+function packNames(names: string[]) {
+  const lines: string[] = [];
+  let current = "";
+  for (const name of names) {
+    const candidate = current ? `${current}・${name}` : name;
+    if (current && getTextWidth(candidate) > SHARE_LINE_WIDTH) {
+      lines.push(current);
+      current = name;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.join("\n");
+}
+
 function PeriodStatusPicker({
   label,
   value,
@@ -126,6 +170,12 @@ function StaffAttendanceContent() {
     return format(date, "M月d日（E）", { locale: ja });
   }, [attendanceDate]);
 
+  // 共有テキスト用。LINEで折り返さないよう短く（例: 8/8(土)）
+  const shortDateLabel = useMemo(() => {
+    if (!attendanceDate) return "";
+    return format(new Date(`${attendanceDate}T00:00:00`), "M/d(E)", { locale: ja });
+  }, [attendanceDate]);
+
   useEffect(() => {
     async function load() {
       if (!attendanceDate) {
@@ -196,30 +246,57 @@ function StaffAttendanceContent() {
   };
 
   const buildShareText = () => {
+    const getPeriod = (att: StaffAttendance, period: "morning" | "afternoon") =>
+      (period === "morning" ? att.morningStatus : att.afternoonStatus) ?? att.status;
+
+    // 0人の区分は書かず「○7 ×1」のように詰める
     const periodSummary = (period: "morning" | "afternoon") =>
-      STATUS_OPTIONS.map((option) => {
-        const count = staffAttendances.filter(
-          (att) => (period === "morning" ? att.morningStatus ?? att.status : att.afternoonStatus ?? att.status) === option.status
-        ).length;
-        return `${option.icon}${count}`;
-      }).join(" ");
+      STATUS_OPTIONS.map((option) => ({
+        icon: option.icon,
+        count: staffAttendances.filter((att) => getPeriod(att, period) === option.status).length,
+      }))
+        .filter((entry) => entry.count > 0)
+        .map((entry) => `${entry.icon}${entry.count}`)
+        .join(" ");
 
-    const scheduleLines = dayGames.map(
-      (game) => `・${format(new Date(game.dateStart), "HH:mm", { locale: ja })} ${game.title}（${game.venueName}）`
-    );
-
-    const staffLines = staffAttendances.flatMap((att) => {
-      const morning = getStatusIcon(att.morningStatus ?? att.status);
-      const afternoon = getStatusIcon(att.afternoonStatus ?? att.status);
-      const line = `${att.staffName}　午前${morning}／午後${afternoon}`;
-      return att.note ? [line, `　メモ: ${att.note}`] : [line];
+    const scheduleLines = dayGames.flatMap((game) => {
+      const time = format(new Date(game.dateStart), "HH:mm", { locale: ja });
+      const oneLine = `${time} ${game.title}`;
+      return [
+        getTextWidth(oneLine) <= SHARE_LINE_WIDTH ? oneLine : `${time}\n${wrapText(game.title)}`,
+        game.venueName ? wrapText(game.venueName, "　") : "",
+      ];
     });
 
+    // 午前・午後が同じ人はまとめ、違う人だけ個別に書く
+    const sameAll = (status: AttendanceStatusValue) =>
+      staffAttendances.filter((att) => getPeriod(att, "morning") === status && getPeriod(att, "afternoon") === status);
+    const mixed = staffAttendances.filter((att) => getPeriod(att, "morning") !== getPeriod(att, "afternoon"));
+
+    const groupBlock = (heading: string, members: StaffAttendance[]) =>
+      members.length > 0 ? `${heading} ${members.length}名\n${packNames(members.map((att) => att.staffName))}` : "";
+
+    const mixedBlock =
+      mixed.length > 0
+        ? `🔸 一部参加 ${mixed.length}名\n${mixed
+            .map((att) => `${att.staffName} 午前${getStatusIcon(getPeriod(att, "morning"))}／午後${getStatusIcon(getPeriod(att, "afternoon"))}`)
+            .join("\n")}`
+        : "";
+
+    const noteBlock = (() => {
+      const notes = staffAttendances.filter((att) => att.note);
+      return notes.length > 0 ? `📝 メモ\n${notes.map((att) => wrapText(`${att.staffName}：${att.note}`)).join("\n")}` : "";
+    })();
+
     return [
-      `👥 ${dateLabel}のスタッフ出欠`,
-      scheduleLines.length > 0 ? `【この日の予定】\n${scheduleLines.join("\n")}` : "",
-      `【回答 ${staffAttendances.length}名】\n午前 ${periodSummary("morning")}／午後 ${periodSummary("afternoon")}`,
-      staffLines.join("\n"),
+      `👥 ${shortDateLabel} スタッフ出欠`,
+      scheduleLines.length > 0 ? `📅 予定\n${scheduleLines.filter(Boolean).join("\n")}` : "",
+      `📊 回答 ${staffAttendances.length}名\n午前 ${periodSummary("morning")}\n午後 ${periodSummary("afternoon")}`,
+      groupBlock("✅ 終日参加", sameAll("attend")),
+      mixedBlock,
+      groupBlock("🔺 未定", sameAll("undecided")),
+      groupBlock("❌ 欠席", sameAll("absent")),
+      noteBlock,
     ]
       .filter(Boolean)
       .join("\n\n");
