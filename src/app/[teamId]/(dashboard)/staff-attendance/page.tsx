@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { ArrowLeft, CheckCheck, Loader2, Trash2, Users } from "lucide-react";
+import { ArrowLeft, CheckCheck, Loader2, Share2, Trash2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
@@ -26,6 +26,10 @@ const STATUS_OPTIONS = [
   { status: "absent" as AttendanceStatusValue, icon: "×", label: "欠席", activeClass: "bg-absent text-white shadow-absent/30 border-absent" },
   { status: "undecided" as AttendanceStatusValue, icon: "△", label: "未定", activeClass: "bg-undecided text-white shadow-undecided/30 border-undecided" },
 ] as const;
+
+function getStatusIcon(status: AttendanceStatusValue) {
+  return STATUS_OPTIONS.find((option) => option.status === status)?.icon ?? "";
+}
 
 function getOverallStatus(morning: AttendanceStatusValue, afternoon: AttendanceStatusValue): AttendanceStatusValue {
   if (morning === "attend" && afternoon === "attend") return "attend";
@@ -72,7 +76,6 @@ function PeriodStatusPicker({
 }
 
 function PeriodStatusPill({ label, status }: { label: string; status: AttendanceStatusValue }) {
-  const config = STATUS_OPTIONS.find((s) => s.status === status);
   const colorClasses = {
     attend: "bg-attend/10 text-attend border-attend/30",
     absent: "bg-absent/10 text-absent border-absent/30",
@@ -82,7 +85,7 @@ function PeriodStatusPill({ label, status }: { label: string; status: Attendance
   return (
     <span className={cn("inline-flex min-w-[76px] items-center justify-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[13px] font-black", colorClasses[status])}>
       <span>{label}</span>
-      <span className="text-[18px] leading-none">{config?.icon}</span>
+      <span className="text-[18px] leading-none">{getStatusIcon(status)}</span>
     </span>
   );
 }
@@ -115,6 +118,7 @@ function StaffAttendanceContent() {
   const [staffNote, setStaffNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const dateLabel = useMemo(() => {
     if (!attendanceDate) return "";
@@ -191,6 +195,55 @@ function StaffAttendanceContent() {
     }
   };
 
+  const buildShareText = () => {
+    const periodSummary = (period: "morning" | "afternoon") =>
+      STATUS_OPTIONS.map((option) => {
+        const count = staffAttendances.filter(
+          (att) => (period === "morning" ? att.morningStatus ?? att.status : att.afternoonStatus ?? att.status) === option.status
+        ).length;
+        return `${option.icon}${count}`;
+      }).join(" ");
+
+    const scheduleLines = dayGames.map(
+      (game) => `・${format(new Date(game.dateStart), "HH:mm", { locale: ja })} ${game.title}（${game.venueName}）`
+    );
+
+    const staffLines = staffAttendances.flatMap((att) => {
+      const morning = getStatusIcon(att.morningStatus ?? att.status);
+      const afternoon = getStatusIcon(att.afternoonStatus ?? att.status);
+      const line = `${att.staffName}　午前${morning}／午後${afternoon}`;
+      return att.note ? [line, `　メモ: ${att.note}`] : [line];
+    });
+
+    return [
+      `👥 ${dateLabel}のスタッフ出欠`,
+      scheduleLines.length > 0 ? `【この日の予定】\n${scheduleLines.join("\n")}` : "",
+      `【回答 ${staffAttendances.length}名】\n午前 ${periodSummary("morning")}／午後 ${periodSummary("afternoon")}`,
+      staffLines.join("\n"),
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  };
+
+  const handleShare = async () => {
+    const text = buildShareText();
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ text });
+      } catch {
+        // ユーザーが共有シートを閉じた場合は何もしない
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      alert("この環境では共有・コピーができません。");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -238,7 +291,14 @@ function StaffAttendanceContent() {
       </div>
 
       <div className="bg-surface rounded-2xl border-2 border-info/20 p-4 space-y-4 shadow-sm">
-        <h2 className="font-black text-[15px] flex items-center gap-1.5"><Users className="w-4.5 h-4.5 text-info" />回答済みスタッフ</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-black text-[15px] flex items-center gap-1.5"><Users className="w-4.5 h-4.5 text-info" />回答済みスタッフ</h2>
+          {staffAttendances.length > 0 && (
+            <button type="button" onClick={handleShare} className={cn("shrink-0 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border text-[12px] font-bold transition-all shadow-sm touch-active", shareCopied ? "bg-attend/10 border-attend/30 text-attend" : "border-border bg-surface text-muted active:bg-surface-variant")}>
+              {shareCopied ? (<><CheckCheck className="w-3.5 h-3.5" />コピー完了</>) : (<><Share2 className="w-3.5 h-3.5" />共有</>)}
+            </button>
+          )}
+        </div>
         <div className="divide-y divide-border/50 rounded-xl border border-border overflow-hidden">
           {staffAttendances.length > 0 ? staffAttendances.map((att) => (
             <div key={att.id} className="px-3 py-3 bg-white">
