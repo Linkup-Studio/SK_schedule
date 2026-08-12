@@ -10,7 +10,7 @@ export default function DashboardLayout({
   return (
     <GlobalLock>
       <Header />
-      <main className="pb-nav overflow-x-hidden">
+      <main className="pb-nav overflow-x-clip">
         {children}
       </main>
       <BottomNav />

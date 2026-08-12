@@ -62,8 +62,17 @@ body {
   /* モバイルでの文字選択防止 */
   -webkit-user-select: none;
   user-select: none;
-  /* 横スクロール防止 */
-  overflow-x: hidden;
+  /* 横スクロール防止。clipはbodyをスクロールコンテナ化しないため、
+     iOS Safariでfixed/stickyがスクロールに追従して崩れる問題を避けられる */
+  overflow-x: clip;
+}
+
+/* clip未対応の古いブラウザ向けフォールバック
+   （@supportsで分けないとminifierに上書き削除される） */
+@supports not (overflow-x: clip) {
+  body {
+    overflow-x: hidden;
+  }
 }
 
 /* メインスクロール領域 */
@@ -115,6 +124,9 @@ input, textarea, [contenteditable] {
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  /* 独立コンポジットレイヤー化。iOSでスクロール中に
+     fixedのボトムナビ/stickyヘッダーが画面中央にズレて描画される問題の対策 */
+  transform: translateZ(0);
 }
 
 /* ===== Gradient Background ===== */

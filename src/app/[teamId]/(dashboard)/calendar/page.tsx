@@ -123,7 +123,8 @@ export default function CalendarPage() {
     sessionStorage.removeItem(scrollStorageKey);
     const y = Number(saved);
     if (!Number.isFinite(y) || y <= 0) return;
-    requestAnimationFrame(() => window.scrollTo(0, y));
+    // scroll-behavior: smoothの影響を受けず瞬時に復元する
+    requestAnimationFrame(() => window.scrollTo({ top: y, behavior: "instant" }));
   }, [loading, scrollStorageKey]);
 
   const filteredGames = gradeFilter
