@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, type ReactNode } from "react";
+import { useState, useMemo, useEffect, useCallback, type ReactNode } from "react";
 import Link from "next/link";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, isSameMonth } from "date-fns";
 import { ja } from "date-fns/locale";
@@ -31,18 +31,30 @@ export default function CalendarPage() {
   const teamLink = useTeamLink();
   const storageKey = `${teamSlug}_admin`;
   const gradeStorageKey = `${teamSlug}_calendar_grade`;
+  const viewStorageKey = `${teamSlug}_calendar_view`;
+  const selectedDateStorageKey = `${teamSlug}_calendar_selected`;
+  const scrollStorageKey = `${teamSlug}_calendar_scroll`;
   const [allGames, setAllGames] = useState<Game[]>([]);
   const [summaries, setSummaries] = useState<Record<string, AttendanceSummary>>({});
   const [loading, setLoading] = useState(true);
   const [canViewStaff, setCanViewStaff] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
+  const [viewMode, setViewMode] = useState<"calendar" | "list">(() => {
+    if (typeof window === "undefined") return "list";
+    return sessionStorage.getItem(viewStorageKey) === "calendar" ? "calendar" : "list";
+  });
   const [gradeFilter, setGradeFilter] = useState<GradeValue | null>(() => {
     if (typeof window === "undefined") return null;
     const saved = Number(sessionStorage.getItem(gradeStorageKey));
     return saved === 1 || saved === 2 || saved === 3 ? (saved as GradeValue) : null;
   });
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(() => {
+    if (typeof window === "undefined") return null;
+    const saved = sessionStorage.getItem(selectedDateStorageKey);
+    if (!saved) return null;
+    const parsed = new Date(`${saved}T00:00:00`);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  });
+  const [currentMonth, setCurrentMonth] = useState<Date>(() => selectedDate ?? new Date());
   const [answeredIds, setAnsweredIds] = useState<Set<string>>(new Set());
   const [staffAnsweredDates, setStaffAnsweredDates] = useState<Set<string>>(new Set());
 
@@ -85,6 +97,34 @@ export default function CalendarPage() {
     if (gradeFilter === null) sessionStorage.removeItem(gradeStorageKey);
     else sessionStorage.setItem(gradeStorageKey, String(gradeFilter));
   }, [gradeFilter, gradeStorageKey]);
+
+  // 表示モード（リスト/カレンダー）と選択日もセッション中だけ保持する
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem(viewStorageKey, viewMode);
+  }, [viewMode, viewStorageKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (selectedDate === null) sessionStorage.removeItem(selectedDateStorageKey);
+    else sessionStorage.setItem(selectedDateStorageKey, format(selectedDate, "yyyy-MM-dd"));
+  }, [selectedDate, selectedDateStorageKey]);
+
+  // 詳細ページへ移動する直前にスクロール位置を保存する
+  const saveScrollPosition = useCallback(() => {
+    sessionStorage.setItem(scrollStorageKey, String(window.scrollY));
+  }, [scrollStorageKey]);
+
+  // 詳細から戻ってきたとき、読み込み完了後に一度だけ元の位置へ復元する
+  useEffect(() => {
+    if (loading) return;
+    const saved = sessionStorage.getItem(scrollStorageKey);
+    if (saved === null) return;
+    sessionStorage.removeItem(scrollStorageKey);
+    const y = Number(saved);
+    if (!Number.isFinite(y) || y <= 0) return;
+    requestAnimationFrame(() => window.scrollTo(0, y));
+  }, [loading, scrollStorageKey]);
 
   const filteredGames = gradeFilter
     ? allGames.filter((g) => g.grades.includes(gradeFilter))
@@ -235,7 +275,7 @@ export default function CalendarPage() {
               {selectedGames.length > 0 ? (
                 <>
                   {canViewStaff && (
-                    <Link href={teamLink(`/staff-attendance?date=${selectedDateKey}`)} className={cn(
+                    <Link href={teamLink(`/staff-attendance?date=${selectedDateKey}`)} onClick={saveScrollPosition} className={cn(
                       "flex items-center justify-between gap-3 border-2 rounded-2xl px-4 py-3 active:scale-[0.99] transition-transform",
                       staffAnsweredForSelected ? "bg-attend/10 border-attend/30" : "bg-info/10 border-info/20"
                     )}>
@@ -257,7 +297,7 @@ export default function CalendarPage() {
                     </Link>
                   )}
                   {selectedGames.map((game, i) => (
-                    <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} attendanceSummary={summaries[game.id]} answered={answeredIds.has(game.id)} />
+                    <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} attendanceSummary={summaries[game.id]} answered={answeredIds.has(game.id)} onNavigate={saveScrollPosition} />
                   ))}
                 </>
               ) : (
@@ -284,6 +324,7 @@ export default function CalendarPage() {
                       <Link
                         key={`staff-${key}`}
                         href={teamLink(`/staff-attendance?date=${key}`)}
+                        onClick={saveScrollPosition}
                         className={cn(
                           "flex items-center justify-between gap-3 border-2 rounded-2xl px-4 py-3 active:scale-[0.99] transition-transform",
                           dAns ? "bg-attend/10 border-attend/30" : "bg-info/10 border-info/20"
@@ -309,7 +350,7 @@ export default function CalendarPage() {
                   }
                 }
                 blocks.push(
-                  <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} attendanceSummary={summaries[game.id]} answered={answeredIds.has(game.id)} />
+                  <GameCard key={game.id} game={game} index={i} teamSlug={teamSlug} attendanceSummary={summaries[game.id]} answered={answeredIds.has(game.id)} onNavigate={saveScrollPosition} />
                 );
               });
               return blocks;

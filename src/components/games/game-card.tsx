@@ -18,7 +18,7 @@ function getRelativeDate(dateStr: string): string {
   return "";
 }
 
-export function GameCard({ game, index = 0, attendanceSummary, teamSlug, answered = false }: { game: Game; index?: number; attendanceSummary?: AttendanceSummary; teamSlug: string; answered?: boolean }) {
+export function GameCard({ game, index = 0, attendanceSummary, teamSlug, answered = false, onNavigate }: { game: Game; index?: number; attendanceSummary?: AttendanceSummary; teamSlug: string; answered?: boolean; onNavigate?: () => void }) {
   const summary = attendanceSummary ?? { attend: 0, absent: 0, undecided: 0, noAnswer: 0, total: 0 };
   const dateStart = new Date(game.dateStart);
   const relative = getRelativeDate(game.dateStart);
@@ -28,6 +28,7 @@ export function GameCard({ game, index = 0, attendanceSummary, teamSlug, answere
   return (
     <Link
       href={`/${teamSlug}/games/detail?id=${game.id}`}
+      onClick={onNavigate}
       className={cn(
         "block bg-surface rounded-2xl border border-border p-3.5 shadow-sm touch-active",
         "animate-fade-in-up focus:ring-2 focus:ring-primary/20 outline-none",
