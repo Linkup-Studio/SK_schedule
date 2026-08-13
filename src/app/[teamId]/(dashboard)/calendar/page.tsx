@@ -154,9 +154,11 @@ export default function CalendarPage() {
     : [];
   const staffAnsweredForSelected = selectedDateKey ? staffAnsweredDates.has(selectedDateKey) : false;
 
-  const now = new Date();
+  // 当日の予定は1日残す（翌日0時になってからリストから外す）
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
   const upcomingGames = filteredGames
-    .filter((g) => new Date(g.dateStart) >= now)
+    .filter((g) => new Date(g.dateStart) >= todayStart)
     .sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime());
 
   if (loading) {

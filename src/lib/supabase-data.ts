@@ -149,12 +149,14 @@ export async function fetchUpcomingGames(teamSlug: string): Promise<Game[]> {
   const teamId = await resolveTeamId(teamSlug);
   if (!teamId) return [];
 
-  const now = new Date();
+  // 当日の予定は1日残す（翌日0時になってから外す）
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
   const { data, error } = await supabase
     .from("games")
     .select("*")
     .eq("team_id", teamId)
-    .gte("date_start", now.toISOString())
+    .gte("date_start", todayStart.toISOString())
     .order("date_start", { ascending: true });
 
   if (error) {

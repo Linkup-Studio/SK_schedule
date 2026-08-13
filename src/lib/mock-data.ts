@@ -232,21 +232,25 @@ export function getFilteredGames(gradeFilter: GradeValue | null): Game[] {
 
 /** 未来の試合のみ取得 */
 export function getUpcomingGames(games: Game[]): Game[] {
-  const now = new Date();
+  // 当日の予定は1日残す（翌日0時になってから外す）
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
   return games
-    .filter((g) => new Date(g.dateStart) >= now)
+    .filter((g) => new Date(g.dateStart) >= todayStart)
     .sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime());
 }
 
 /** 直近の試合（今週＋来週） */
 export function getThisWeekGames(): Game[] {
-  const now = new Date();
-  const twoWeeksLater = new Date(now);
+  // 当日の予定は1日残す（翌日0時になってから外す）
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const twoWeeksLater = new Date(todayStart);
   twoWeeksLater.setDate(twoWeeksLater.getDate() + 14);
   return MOCK_GAMES
     .filter((g) => {
       const d = new Date(g.dateStart);
-      return d >= now && d <= twoWeeksLater;
+      return d >= todayStart && d <= twoWeeksLater;
     })
     .sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime());
 }
