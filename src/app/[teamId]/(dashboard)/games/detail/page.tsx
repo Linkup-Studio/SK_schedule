@@ -221,6 +221,8 @@ function GameDetailContent() {
       const staffState = isStaffModeActive(teamSlug);
       setIsAdmin(adminState);
       setCanViewStaff(adminState || staffState);
+      // 管理者は代理入力が主なので、前回の名前を引き継がない（毎回空欄で開く）
+      if (adminState) setPlayerName("");
       const [gameData, attData, counts] = await Promise.all([
         fetchGameById(id),
         fetchAttendancesByGame(id),
@@ -254,7 +256,7 @@ function GameDetailContent() {
     if (result) {
       const fresh = await fetchAttendancesByGame(id);
       setAttendances(fresh);
-      setMyName(teamSlug, playerName.trim());
+      if (!isAdmin) setMyName(teamSlug, playerName.trim());
       setSubmitSuccess(true);
       setTimeout(() => setSubmitSuccess(false), 3000);
       setMorningStatus(null); setAfternoonStatus(null); setReason("");
@@ -374,7 +376,7 @@ function GameDetailContent() {
           {submitSuccess && (<div className="bg-attend/10 border border-attend/20 rounded-xl p-3 text-center animate-fade-in-up"><p className="text-attend font-bold text-[13px]">✅ 出欠を保存しました！</p></div>)}
           <div className="text-center mb-2"><h2 className="font-black text-[15px] mb-2">出欠を送信</h2>{game.rsvpDeadline ? <div className="inline-flex items-center gap-1.5 bg-error/10 border-2 border-error/25 rounded-xl px-4 py-2"><span className="text-[13px] font-black text-error">⏰ 締切: {safeFormat(game.rsvpDeadline, "M月d日（E）")}まで</span></div> : <p className="text-[11px] text-muted">いつでも回答・変更できます</p>}</div>
           <div className="space-y-3">
-            <div><label className="text-[11px] font-bold text-muted ml-1 mb-1 block">選手のお名前（必須）</label><input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="例: 佐藤 太郎" className="w-full bg-background border border-border px-4 py-3 rounded-xl text-[15px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" /></div>
+            <div><label className="text-[11px] font-bold text-muted ml-1 mb-1 block">選手のお名前（必須）</label><div className="relative"><input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="例: 佐藤 太郎" className="w-full bg-background border border-border px-4 py-3 pr-10 rounded-xl text-[15px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" />{playerName && (<button type="button" aria-label="名前を消す" onClick={() => setPlayerName("")} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full bg-gray-200 text-gray-500 text-[13px] font-bold active:scale-90 transition-transform">✕</button>)}</div></div>
             <div className="space-y-3">
               {simpleAttendance ? (
                 <PeriodStatusPicker
