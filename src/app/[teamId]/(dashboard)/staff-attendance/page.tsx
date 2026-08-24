@@ -165,6 +165,7 @@ function StaffAttendanceContent() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [requestCopied, setRequestCopied] = useState(false);
 
   const dateLabel = useMemo(() => {
     if (!attendanceDate) return "";
@@ -304,6 +305,36 @@ function StaffAttendanceContent() {
       .join("\n\n");
   };
 
+  /** スタッフへの出欠依頼（予定＋入力ページのリンク。保護者向けの予定共有と同じテキスト形式） */
+  const handleShareRequest = async () => {
+    const scheduleLines = dayGames.map(
+      (g) => `${format(new Date(g.dateStart), "HH:mm")} ${g.title}（${g.venueName}）`
+    );
+    const text = [
+      `👥 ${dateLabel}のスタッフ出欠のお願い`,
+      scheduleLines.length > 0 ? `📅 この日の予定\n${scheduleLines.join("\n")}` : "",
+      "▼出欠の入力はこちら",
+      window.location.href,
+    ]
+      .filter(Boolean)
+      .join("\n");
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ text });
+      } catch {
+        // ユーザーが共有シートを閉じた場合は何もしない
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      setRequestCopied(true);
+      setTimeout(() => setRequestCopied(false), 2000);
+    } catch {
+      alert("この環境では共有・コピーができません。");
+    }
+  };
+
   /** 画像が使えない環境向けのフォールバック（テキスト共有 → クリップボード） */
   const shareAsText = async () => {
     const text = buildShareText();
@@ -390,6 +421,22 @@ function StaffAttendanceContent() {
         <p className="text-[12px] text-muted font-bold leading-relaxed">
           この日に予定が複数あっても、スタッフ出欠はこの1日分の午前・午後だけ登録します。
         </p>
+        <button
+          type="button"
+          onClick={handleShareRequest}
+          className={cn(
+            "w-full flex items-center justify-center gap-1.5 py-3 rounded-xl text-[13px] font-bold transition-all shadow-sm touch-active",
+            requestCopied
+              ? "bg-attend/10 border-2 border-attend/30 text-attend"
+              : "bg-info text-white active:scale-[0.98]"
+          )}
+        >
+          {requestCopied ? (
+            <><CheckCheck className="w-4 h-4" />コピー完了！LINEに貼り付けてください</>
+          ) : (
+            <><Share2 className="w-4 h-4" />出欠依頼を共有（予定＋入力リンク）</>
+          )}
+        </button>
       </div>
 
       <div className="bg-surface rounded-2xl border border-border p-4 shadow-sm space-y-3">
