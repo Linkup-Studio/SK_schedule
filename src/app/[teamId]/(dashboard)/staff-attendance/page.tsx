@@ -421,6 +421,7 @@ function StaffAttendanceContent() {
         <p className="text-[12px] text-muted font-bold leading-relaxed">
           この日に予定が複数あっても、スタッフ出欠はこの1日分の午前・午後だけ登録します。
         </p>
+        {isAdmin && (
         <button
           type="button"
           onClick={handleShareRequest}
@@ -437,6 +438,7 @@ function StaffAttendanceContent() {
             <><Share2 className="w-4 h-4" />出欠依頼を共有（予定＋入力リンク）</>
           )}
         </button>
+        )}
       </div>
 
       <div className="bg-surface rounded-2xl border border-border p-4 shadow-sm space-y-3">
