@@ -221,8 +221,8 @@ function GameDetailContent() {
       const staffState = isStaffModeActive(teamSlug);
       setIsAdmin(adminState);
       setCanViewStaff(adminState || staffState);
-      // 管理者は代理入力が主なので、前回の名前を引き継がない（毎回空欄で開く）
-      if (adminState) setPlayerName("");
+      // 管理者・スタッフは代理入力が主なので、前回の名前を引き継がない（毎回空欄で開く）
+      if (adminState || staffState) setPlayerName("");
       const [gameData, attData, counts] = await Promise.all([
         fetchGameById(id),
         fetchAttendancesByGame(id),
