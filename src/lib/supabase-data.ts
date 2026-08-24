@@ -68,6 +68,7 @@ function toAnnouncement(row: Record<string, any>): Announcement {
     body: row.body,
     isPinned: row.is_pinned,
     gameId: row.game_id ?? undefined,
+    gameDateStart: row.games?.date_start ?? undefined,
     targetGrades: row.target_grades as GradeValue[],
     createdBy: "admin",
     createdByName: "管理者",
@@ -533,7 +534,7 @@ export async function fetchAnnouncements(teamSlug: string): Promise<Announcement
 
   const { data, error } = await supabase
     .from("announcements")
-    .select("*")
+    .select("*, games(date_start)")
     .eq("team_id", teamId)
     .order("is_pinned", { ascending: false })
     .order("created_at", { ascending: false });
@@ -542,7 +543,12 @@ export async function fetchAnnouncements(teamSlug: string): Promise<Announcement
     console.error("お知らせの取得に失敗しました:", error.message);
     return [];
   }
-  return (data ?? []).map(toAnnouncement);
+  // 予定に紐付いたお知らせは当日いっぱいで一覧から外す（翌日0時から非表示・予定タブと同じ挙動）
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  return (data ?? [])
+    .map(toAnnouncement)
+    .filter((a) => !a.gameDateStart || new Date(a.gameDateStart) >= todayStart);
 }
 
 export async function cleanupOldAnnouncements(teamSlug: string): Promise<number> {

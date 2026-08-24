@@ -87,6 +87,8 @@ export interface Announcement {
   body: string;
   /** この お知らせの元になった予定（予定登録の自動お知らせのみ。タップでジャンプに使う） */
   gameId?: string;
+  /** 紐付いた予定の開催日時（当日いっぱいで一覧から外す判定に使う） */
+  gameDateStart?: string;
   imageUrls?: string[];
   isPinned: boolean;
   targetGrades: GradeValue[];
