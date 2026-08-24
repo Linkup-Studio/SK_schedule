@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeamLink } from "@/hooks/use-team-link";
 import { useGoBack } from "@/hooks/use-go-back";
@@ -72,6 +72,17 @@ function AnnouncementDetailContent() {
           </div>
         </div>
         <div className="p-4 sm:p-5"><div className="text-[14px] leading-loose whitespace-pre-wrap text-foreground">{ann.body}</div></div>
+        {ann.gameId && (
+          <div className="px-4 pb-4 sm:px-5 sm:pb-5">
+            <Link
+              href={teamLink(`/games/detail?id=${ann.gameId}`)}
+              className="flex items-center justify-center gap-1.5 w-full py-3 bg-primary text-white text-[13px] font-bold rounded-xl active:scale-[0.98] transition-all shadow-sm"
+            >
+              <CalendarDays className="w-4 h-4" />
+              この予定を開く（出欠回答へ）
+            </Link>
+          </div>
+        )}
       </article>
     </div>
   );

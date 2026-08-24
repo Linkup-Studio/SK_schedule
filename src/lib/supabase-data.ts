@@ -67,6 +67,7 @@ function toAnnouncement(row: Record<string, any>): Announcement {
     title: row.title,
     body: row.body,
     isPinned: row.is_pinned,
+    gameId: row.game_id ?? undefined,
     targetGrades: row.target_grades as GradeValue[],
     createdBy: "admin",
     createdByName: "管理者",
@@ -585,6 +586,8 @@ export async function createAnnouncement(teamSlug: string, input: {
   body: string;
   targetGrades: number[];
   isPinned?: boolean;
+  /** 予定登録の自動お知らせで、元の予定へリンクするためのID */
+  gameId?: string;
 }): Promise<Announcement | null> {
   const teamId = await resolveTeamId(teamSlug);
   if (!teamId) return null;
@@ -597,6 +600,8 @@ export async function createAnnouncement(teamSlug: string, input: {
       body: input.body,
       target_grades: input.targetGrades,
       is_pinned: input.isPinned ?? false,
+      // game_idカラム追加前の環境でも投稿が失敗しないよう、指定時だけ含める
+      ...(input.gameId ? { game_id: input.gameId } : {}),
     })
     .select()
     .single();

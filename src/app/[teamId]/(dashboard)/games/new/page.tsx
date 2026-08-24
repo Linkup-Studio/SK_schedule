@@ -127,6 +127,7 @@ function NewGameContent() {
       await createAnnouncement(teamSlug, {
         title: `${typeLabel}のお知らせ: ${title.trim()}`,
         body: annBody, targetGrades: selectedGrades,
+        gameId: result.id,
       });
 
       alert("✅ 予定を登録しました！");

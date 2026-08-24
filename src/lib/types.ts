@@ -85,6 +85,8 @@ export interface Announcement {
   id: string;
   title: string;
   body: string;
+  /** この お知らせの元になった予定（予定登録の自動お知らせのみ。タップでジャンプに使う） */
+  gameId?: string;
   imageUrls?: string[];
   isPinned: boolean;
   targetGrades: GradeValue[];

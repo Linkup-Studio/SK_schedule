@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Megaphone, ChevronRight, Pin, Loader2, Plus } from "lucide-react";
+import { Megaphone, ChevronRight, Pin, Loader2, Plus, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
@@ -15,6 +16,7 @@ import type { Announcement } from "@/lib/types";
 export default function AnnouncementsPage() {
   const { teamSlug } = useTeam();
   const teamLink = useTeamLink();
+  const router = useRouter();
   const storageKey = `${teamSlug}_admin`;
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -82,6 +84,20 @@ export default function AnnouncementsPage() {
                       <span className="font-bold">{format(new Date(ann.createdAt), "M月d日（E）", { locale: ja })}</span>
                       {ann.createdByName && <span>{ann.createdByName}</span>}
                     </div>
+                    {ann.gameId && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          router.push(teamLink(`/games/detail?id=${ann.gameId}`));
+                        }}
+                        className="mt-2 inline-flex items-center gap-1 px-2.5 py-1.5 bg-primary-50 text-primary text-[11px] font-bold rounded-lg border border-primary/30 active:scale-95 transition-all"
+                      >
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        予定を開く（出欠回答）
+                      </button>
+                    )}
                   </div>
                   <ChevronRight className="w-4 h-4 text-muted shrink-0 mt-2" />
                 </div>
