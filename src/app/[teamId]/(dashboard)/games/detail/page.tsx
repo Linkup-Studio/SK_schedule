@@ -254,7 +254,7 @@ function GameDetailContent() {
     });
     setSubmitting(false);
     if (result) {
-      const fresh = await fetchAttendancesByGame(id);
+      const fresh = await fetchAttendancesByGame(id, true);
       setAttendances(fresh);
       if (!isAdmin) setMyName(teamSlug, playerName.trim());
       setSubmitSuccess(true);

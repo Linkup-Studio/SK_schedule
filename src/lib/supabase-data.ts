@@ -284,7 +284,30 @@ export async function updateGame(id: string, input: {
 // 出欠（Attendances）
 // =============================================
 
-export async function fetchAttendancesByGame(gameId: string): Promise<Attendance[]> {
+
+// =============================================
+// 取得の安全弁（2026-09-09）: 同じ取得を短時間に繰り返してもDBへは1回しか行かない
+// 背景: Supabaseの送信量(egress)が月5GBを超過。DB統計で「出欠一覧＋学年人数」の取得だけが
+// 画面表示回数の70倍呼ばれており、特定端末の再取得ループが疑われる。利用者の見た目は変えず、
+// 15秒以内の同一取得はメモリ上の結果を返す（送信後の再取得は force で回避できる）。
+// =============================================
+const SHORT_TTL_MS = 15_000;
+const shortCache = new Map<string, { at: number; value: Promise<unknown> }>();
+function withShortCache<T>(key: string, force: boolean, run: () => Promise<T>): Promise<T> {
+  const now = Date.now();
+  const hit = shortCache.get(key);
+  if (!force && hit && now - hit.at < SHORT_TTL_MS) return hit.value as Promise<T>;
+  const value = run().catch((e) => { shortCache.delete(key); throw e; });
+  shortCache.set(key, { at: now, value });
+  if (shortCache.size > 200) shortCache.clear();
+  return value;
+}
+
+export async function fetchAttendancesByGame(gameId: string, force = false): Promise<Attendance[]> {
+  return withShortCache(`att:${gameId}`, force, () => fetchAttendancesByGameRaw(gameId));
+}
+
+async function fetchAttendancesByGameRaw(gameId: string): Promise<Attendance[]> {
   const { data, error } = await supabase
     .from("attendances")
     .select("*")
@@ -454,7 +477,11 @@ export async function deleteStaffAttendance(id: string): Promise<boolean> {
   return true;
 }
 
-export async function fetchPlayerCountsByGrade(teamSlug: string): Promise<Record<string, number>> {
+export async function fetchPlayerCountsByGrade(teamSlug: string, force = false): Promise<Record<string, number>> {
+  return withShortCache(`pc:${teamSlug}`, force, () => fetchPlayerCountsByGradeRaw(teamSlug));
+}
+
+async function fetchPlayerCountsByGradeRaw(teamSlug: string): Promise<Record<string, number>> {
   const teamId = await resolveTeamId(teamSlug);
   if (!teamId) return {};
 

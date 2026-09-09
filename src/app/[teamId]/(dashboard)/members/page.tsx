@@ -62,7 +62,7 @@ export default function AdminMenuPage() {
     const success = await updatePlayerCounts(teamSlug, stringKeyed);
     if (!success) {
       alert("選手人数の保存に失敗しました。ページを再読み込みしてお試しください。");
-      const saved = await fetchPlayerCountsByGrade(teamSlug);
+      const saved = await fetchPlayerCountsByGrade(teamSlug, true);
       if (Object.keys(saved).length > 0) {
         const parsed: Record<number, number> = {};
         for (const [k, v] of Object.entries(saved)) {
