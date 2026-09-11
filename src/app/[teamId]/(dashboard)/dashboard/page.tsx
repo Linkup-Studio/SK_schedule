@@ -16,7 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
-import { fetchUpcomingGames, fetchAnnouncements, fetchAttendanceSummary, fetchAnsweredGameIds } from "@/lib/supabase-data";
+import { fetchUpcomingGames, fetchAnnouncements, fetchAttendanceSummaries, fetchAnsweredGameIds } from "@/lib/supabase-data";
 import { getMyName } from "@/lib/my-name";
 import { GameTypeBadge, GradeBadge, AttendanceSummaryBar } from "@/components/common/badges";
 import { isSimpleAttendanceType } from "@/lib/constants";
@@ -43,13 +43,8 @@ export default function DashboardPage() {
         setAnnouncements(anns);
         setAnsweredIds(await fetchAnsweredGameIds(teamSlug, getMyName(teamSlug)));
 
-        const sums: Record<string, AttendanceSummary> = {};
-        await Promise.all(
-          games.map(async (g) => {
-            sums[g.id] = await fetchAttendanceSummary(g.id, teamSlug, g.grades);
-          })
-        );
-        setSummaries(sums);
+        // 出欠サマリーは試合ごとではなく、まとめて1回で取る
+        setSummaries(await fetchAttendanceSummaries(games, teamSlug));
       } catch (err) {
         console.error("データの読み込みに失敗しました:", err);
       } finally {

@@ -307,6 +307,7 @@ export async function fetchAttendancesByGame(gameId: string, force = false): Pro
   return withShortCache(`att:${gameId}`, force, () => fetchAttendancesByGameRaw(gameId));
 }
 
+
 async function fetchAttendancesByGameRaw(gameId: string): Promise<Attendance[]> {
   const { data, error } = await supabase
     .from("attendances")
@@ -513,7 +514,72 @@ export async function updatePlayerCounts(teamSlug: string, counts: Record<string
 
 export async function fetchAttendanceSummary(gameId: string, teamSlug: string, grades?: GradeValue[]): Promise<AttendanceSummary> {
   const attendances = await fetchAttendancesByGame(gameId);
+  let totalPlayersOuter = 0;
+  if (grades && grades.length > 0) {
+    const counts = await fetchPlayerCountsByGrade(teamSlug);
+    totalPlayersOuter = grades.reduce((sum, g) => sum + (counts[String(g)] ?? 0), 0);
+  }
+  return buildAttendanceSummary(attendances, totalPlayersOuter);
+}
 
+/** 集計に必要な最小限の項目だけ（名前・理由・日時は集計に使わないので取らない） */
+type AttendanceTally = { status: AttendanceStatusValue; morningStatus?: AttendanceStatusValue; afternoonStatus?: AttendanceStatusValue };
+
+/**
+ * 一覧画面用: 複数試合の集計を「出欠まとめて＋学年人数1回」で作る。
+ *
+ * 以前は試合ごとに1回ずつ、しかも全項目(select *)を取っていたため、
+ * 画面を開くたびに「試合の数」ぶんの通信が走り、名前や理由など集計に使わない
+ * データまで毎回ダウンロードしていた（Supabaseのデータ通信量超過の主因・2026-09-11実測）。
+ * ここでは game_id でまとめて引き、集計に使う4項目だけを取る。
+ * URLが長くなりすぎないよう40件ずつに分けて問い合わせる。
+ */
+export async function fetchAttendanceSummaries(
+  games: { id: string; grades?: GradeValue[] }[],
+  teamSlug: string,
+  force = false,
+): Promise<Record<string, AttendanceSummary>> {
+  if (games.length === 0) return {};
+  const ids = [...new Set(games.map((g) => g.id))].filter(Boolean);
+  const needsCounts = games.some((g) => g.grades && g.grades.length > 0);
+
+  const [byGame, counts] = await Promise.all([
+    withShortCache(`attsum:${[...ids].sort().join(",")}`, force, async () => {
+      const out: Record<string, AttendanceTally[]> = {};
+      for (const id of ids) out[id] = [];
+      for (let i = 0; i < ids.length; i += 40) {
+        const { data, error } = await supabase
+          .from("attendances")
+          .select("game_id,status,morning_status,afternoon_status")
+          .in("game_id", ids.slice(i, i + 40));
+        if (error) {
+          console.error("出欠データの取得に失敗しました:", error.message);
+          continue; // 取れなかったぶんは0件扱い（試合ごとに取っていた時と同じ挙動）
+        }
+        for (const row of data ?? []) {
+          const status = row.status as AttendanceStatusValue;
+          (out[row.game_id as string] ??= []).push({
+            status,
+            morningStatus: (row.morning_status ?? status) as AttendanceStatusValue,
+            afternoonStatus: (row.afternoon_status ?? status) as AttendanceStatusValue,
+          });
+        }
+      }
+      return out;
+    }),
+    needsCounts ? fetchPlayerCountsByGrade(teamSlug, force) : Promise.resolve({} as Record<string, number>),
+  ]);
+
+  const out: Record<string, AttendanceSummary> = {};
+  for (const g of games) {
+    const totalPlayers = (g.grades ?? []).reduce((sum, gr) => sum + (counts[String(gr)] ?? 0), 0);
+    out[g.id] = buildAttendanceSummary(byGame[g.id] ?? [], totalPlayers);
+  }
+  return out;
+}
+
+/** 出欠の配列と対象人数から集計を作る（通信はしない） */
+function buildAttendanceSummary(attendances: AttendanceTally[], totalPlayers: number): AttendanceSummary {
   // 全体集計（既存の status ベース - 後方互換）
   const attend = attendances.filter((a) => a.status === "attend").length;
   const absent = attendances.filter((a) => a.status === "absent").length;
@@ -528,12 +594,6 @@ export async function fetchAttendanceSummary(gameId: string, teamSlug: string, g
   const aAttend = attendances.filter((a) => a.afternoonStatus === "attend").length;
   const aAbsent = attendances.filter((a) => a.afternoonStatus === "absent").length;
   const aUndecided = attendances.filter((a) => a.afternoonStatus === "undecided").length;
-
-  let totalPlayers = 0;
-  if (grades && grades.length > 0) {
-    const counts = await fetchPlayerCountsByGrade(teamSlug);
-    totalPlayers = grades.reduce((sum, g) => sum + (counts[String(g)] ?? 0), 0);
-  }
 
   const noAnswer = Math.max(0, totalPlayers - attend - absent - undecided);
   const total = attend + absent + undecided + noAnswer;

@@ -7,7 +7,7 @@ import { ja } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, List, CalendarDays, Loader2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
-import { fetchGames, fetchAttendanceSummary, fetchAnsweredGameIds, fetchStaffAnsweredDates } from "@/lib/supabase-data";
+import { fetchGames, fetchAttendanceSummaries, fetchAnsweredGameIds, fetchStaffAnsweredDates } from "@/lib/supabase-data";
 import { isStaffModeActive } from "@/lib/staff-auth";
 import { getMyName, getMyStaffName } from "@/lib/my-name";
 import { useTeamLink } from "@/hooks/use-team-link";
@@ -68,14 +68,8 @@ export default function CalendarPage() {
       setAnsweredIds(await fetchAnsweredGameIds(teamSlug, getMyName(teamSlug)));
       setStaffAnsweredDates(await fetchStaffAnsweredDates(teamSlug, getMyStaffName(teamSlug)));
 
-      // 各試合の出欠サマリーを並行取得
-      const sums: Record<string, AttendanceSummary> = {};
-      await Promise.all(
-        games.map(async (g) => {
-          sums[g.id] = await fetchAttendanceSummary(g.id, teamSlug, g.grades);
-        })
-      );
-      setSummaries(sums);
+      // 各試合の出欠サマリー（試合ごとではなく、まとめて1回で取る）
+      setSummaries(await fetchAttendanceSummaries(games, teamSlug));
 
       setLoading(false);
     }
