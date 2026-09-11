@@ -119,14 +119,17 @@ input, textarea, [contenteditable] {
   animation: spin-ball 1s linear infinite;
 }
 
-/* ===== Glass Card Effect — モバイルで軽量化 ===== */
+/* ===== 上下のバー（stickyヘッダー / fixedボトムナビ）の背景 =====
+   iOS Safariでは position:fixed / sticky の要素自身に backdrop-filter や
+   transform を付けると、その要素が別レイヤーに切り出された時に位置の基準を
+   取り違えて、スクロール中に画面の途中へズレて描画されることがある。
+   （2026-09-11 ひろ報告: ボトムナビが画面中央に出てスクロールに付いてくる）
+   以前 transform:translateZ(0) を「対策」として足していたが、これは効かない
+   どころか同じ症状の引き金になるため両方とも外した。
+   背景は元々ほぼ不透明（0.92）でぼかしの効果はごく僅かだったので、
+   不透明にして見た目を保ちつつ、レイヤー化の引き金を無くしている。 */
 .glass-card {
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  /* 独立コンポジットレイヤー化。iOSでスクロール中に
-     fixedのボトムナビ/stickyヘッダーが画面中央にズレて描画される問題の対策 */
-  transform: translateZ(0);
+  background: var(--color-surface);
 }
 
 /* ===== Gradient Background ===== */
