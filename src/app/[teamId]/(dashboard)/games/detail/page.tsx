@@ -256,7 +256,9 @@ function GameDetailContent() {
     if (result) {
       const fresh = await fetchAttendancesByGame(id, true);
       setAttendances(fresh);
-      if (!isAdmin) setMyName(teamSlug, playerName.trim());
+      // 管理者・スタッフの端末では代理入力が主なので、入力した名前を「自分の名前」として覚えない
+      // （覚えると、その選手の回答が自分の「回答済み」として一覧に出てしまう）
+      if (!isAdmin && !isStaffModeActive(teamSlug)) setMyName(teamSlug, playerName.trim());
       setSubmitSuccess(true);
       setTimeout(() => setSubmitSuccess(false), 3000);
       setMorningStatus(null); setAfternoonStatus(null); setReason("");

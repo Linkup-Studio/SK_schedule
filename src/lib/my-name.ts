@@ -21,6 +21,13 @@ export function setMyName(teamSlug: string, name: string) {
   window.dispatchEvent(new Event("storage"));
 }
 
+/** 端末が覚えている選手名を消す（代理入力で他人の名前が残った時の直し方・設定画面から使う） */
+export function clearMyName(teamSlug: string) {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(myNameKey(teamSlug));
+  window.dispatchEvent(new Event("storage"));
+}
+
 // --- スタッフ用（選手名とは別人格で扱うため別キー） ---
 
 function myStaffNameKey(teamSlug: string) {
