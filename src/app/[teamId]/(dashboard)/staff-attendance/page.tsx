@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
-import { ArrowLeft, CheckCheck, Loader2, Share2, Trash2, Users } from "lucide-react";
+import { ArrowLeft, CalendarPlus, CheckCheck, Loader2, Share2, Trash2, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
@@ -40,6 +40,26 @@ function getOverallStatus(morning: AttendanceStatusValue, afternoon: AttendanceS
 
 function getLocalDateKey(dateValue: string | Date) {
   return format(typeof dateValue === "string" ? new Date(dateValue) : dateValue, "yyyy-MM-dd");
+}
+
+/**
+ * スタッフ出欠を自分のGoogleカレンダーに入れるリンク（予定を作る画面を開くだけ・ログインや許可は不要）
+ * 午前のみ 8:00〜12:00／午後のみ 13:00〜17:00／両方 8:00〜17:00（ひろさん 10/2）
+ */
+function googleCalendarUrl(opts: { date: string; morning: boolean; afternoon: boolean; title: string; location: string; details: string }) {
+  if (!opts.morning && !opts.afternoon) return null;
+  const start = opts.morning ? "080000" : "130000";
+  const end = opts.afternoon ? "170000" : "120000";
+  const d = opts.date.replace(/-/g, "");
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: opts.title,
+    dates: `${d}T${start}/${d}T${end}`,
+    ctz: "Asia/Tokyo",
+    location: opts.location,
+    details: opts.details,
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 /** LINEの吹き出しが折り返さない1行の目安（全角換算） */
@@ -166,6 +186,8 @@ function StaffAttendanceContent() {
   const [shareCopied, setShareCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [requestCopied, setRequestCopied] = useState(false);
+  // 送信したばかりの出欠（Googleカレンダーに追加するボタン用）
+  const [lastSent, setLastSent] = useState<{ morning: AttendanceStatusValue; afternoon: AttendanceStatusValue } | null>(null);
 
   const dateLabel = useMemo(() => {
     if (!attendanceDate) return "";
@@ -240,6 +262,7 @@ function StaffAttendanceContent() {
       setMyStaffName(teamSlug, staffName.trim());
       setSubmitSuccess(true);
       setTimeout(() => setSubmitSuccess(false), 3000);
+      setLastSent({ morning: staffMorningStatus, afternoon: staffAfternoonStatus });
       setStaffMorningStatus(null);
       setStaffAfternoonStatus(null);
       setStaffNote("");
@@ -509,6 +532,43 @@ function StaffAttendanceContent() {
             <p className="text-attend font-bold text-[13px]">✅ スタッフ出欠を保存しました！</p>
           </div>
         )}
+
+        {(() => {
+          if (!lastSent) return null;
+          const morning = lastSent.morning === "attend";
+          const afternoon = lastSent.afternoon === "attend";
+          const url = googleCalendarUrl({
+            date: attendanceDate,
+            morning,
+            afternoon,
+            title: `${team?.name ?? "SKクラブ"} ${dayGames.map((g) => g.title).join("・")}`.trim(),
+            location: [...new Set(dayGames.map((g) => g.venueName).filter(Boolean))].join("・"),
+            details: [
+              ...dayGames.map((g) => `${format(new Date(g.dateStart), "HH:mm")} ${g.title}（${g.venueName ?? ""}）`),
+              "",
+              `スタッフ出欠: ${typeof window !== "undefined" ? window.location.href : ""}`,
+            ].join("\n"),
+          });
+          if (!url) return null;
+          const range = morning && afternoon ? "8:00〜17:00" : morning ? "8:00〜12:00" : "13:00〜17:00";
+          return (
+            <div className="rounded-xl border-2 border-info/30 bg-info/5 p-3 space-y-2 animate-fade-in-up">
+              <p className="text-[13px] font-black text-info">自分のGoogleカレンダーに追加しますか？</p>
+              <p className="text-[12px] text-muted font-bold">{dateLabel} {range}（{morning && afternoon ? "午前・午後" : morning ? "午前" : "午後"}）</p>
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setLastSent(null)}
+                className="w-full flex items-center justify-center gap-1.5 py-3 rounded-xl bg-info text-white text-[14px] font-black shadow-sm active:scale-[0.98] touch-active"
+              >
+                <CalendarPlus className="w-4.5 h-4.5" />Googleカレンダーに追加する
+              </a>
+              <p className="text-[11px] text-muted">開いた画面で「保存」を押すと追加されます。</p>
+              <button type="button" onClick={() => setLastSent(null)} className="w-full py-1.5 text-[12px] font-bold text-muted">追加しない</button>
+            </div>
+          );
+        })()}
 
         <div className="space-y-3 pt-1">
           <div>
