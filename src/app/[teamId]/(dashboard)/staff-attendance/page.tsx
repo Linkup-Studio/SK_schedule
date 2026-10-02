@@ -59,7 +59,9 @@ function googleCalendarUrl(opts: { date: string; morning: boolean; afternoon: bo
     location: opts.location,
     details: opts.details,
   });
-  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  // calendar.google.com だとiPhoneのGoogleカレンダーアプリが開いて、予定の中身を受け取らない（10/2 ひろさん実機）。
+  // www.google.com 側のアドレスにして、ブラウザで「予定を作る画面」を開く
+  return `https://www.google.com/calendar/render?${params.toString()}`;
 }
 
 /** LINEの吹き出しが折り返さない1行の目安（全角換算） */
