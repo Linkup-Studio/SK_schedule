@@ -19,6 +19,7 @@ import {
 } from "@/lib/supabase-data";
 import { GameTypeBadge, GradeBadge } from "@/components/common/badges";
 import { renderStaffAttendanceImage } from "@/lib/attendance-image";
+import { gcalAuthUrl } from "@/lib/google-calendar";
 import type { AttendanceStatusValue } from "@/lib/constants";
 import type { Game, StaffAttendance } from "@/lib/types";
 
@@ -539,18 +540,24 @@ function StaffAttendanceContent() {
           if (!lastSent) return null;
           const morning = lastSent.morning === "attend";
           const afternoon = lastSent.afternoon === "attend";
-          const url = googleCalendarUrl({
-            date: attendanceDate,
-            morning,
-            afternoon,
-            title: `${team?.name ?? "SKクラブ"} ${dayGames.map((g) => g.title).join("・")}`.trim(),
-            location: [...new Set(dayGames.map((g) => g.venueName).filter(Boolean))].join("・"),
-            details: [
-              ...dayGames.map((g) => `${format(new Date(g.dateStart), "HH:mm")} ${g.title}（${g.venueName ?? ""}）`),
-              "",
-              `スタッフ出欠: ${typeof window !== "undefined" ? window.location.href : ""}`,
-            ].join("\n"),
-          });
+          const title = `${team?.name ?? "SKクラブ"} ${dayGames.map((g) => g.title).join("・")}`.trim();
+          const location = [...new Set(dayGames.map((g) => g.venueName).filter(Boolean))].join("・");
+          const details = dayGames.map((g) => `${format(new Date(g.dateStart), "HH:mm")} ${g.title}（${g.venueName ?? ""}）`).join("\n");
+          // Googleカレンダーに直接書き込む（ログイン→許可→自動で追加）。設定前は「予定を作る画面」を開くだけのリンク
+          const url =
+            (typeof window !== "undefined" && (morning || afternoon)
+              ? gcalAuthUrl({
+                  summary: title,
+                  location,
+                  description: details,
+                  date: attendanceDate,
+                  start: morning ? "08:00" : "13:00",
+                  end: afternoon ? "17:00" : "12:00",
+                  back: window.location.href,
+                })
+              : null) ??
+            googleCalendarUrl({ date: attendanceDate, morning, afternoon, title, location, details });
+          const direct = typeof window !== "undefined" && url?.startsWith("https://accounts.google.com/");
           if (!url) return null;
           const range = morning && afternoon ? "8:00〜17:00" : morning ? "8:00〜12:00" : "13:00〜17:00";
           return (
@@ -559,14 +566,14 @@ function StaffAttendanceContent() {
               <p className="text-[12px] text-muted font-bold">{dateLabel} {range}（{morning && afternoon ? "午前・午後" : morning ? "午前" : "午後"}）</p>
               <a
                 href={url}
-                target="_blank"
+                target={direct ? undefined : "_blank"}
                 rel="noopener noreferrer"
                 onClick={() => setLastSent(null)}
                 className="w-full flex items-center justify-center gap-1.5 py-3 rounded-xl bg-info text-white text-[14px] font-black shadow-sm active:scale-[0.98] touch-active"
               >
                 <CalendarPlus className="w-4.5 h-4.5" />Googleカレンダーに追加する
               </a>
-              <p className="text-[11px] text-muted">開いた画面で「保存」を押すと追加されます。</p>
+              <p className="text-[11px] text-muted">{direct ? "Googleのアカウントを選ぶと、自動で追加されます（はじめての時だけ、カレンダーへの追加を許可する画面が出ます）。" : "開いた画面で「保存」を押すと追加されます。"}</p>
               <button type="button" onClick={() => setLastSent(null)} className="w-full py-1.5 text-[12px] font-bold text-muted">追加しない</button>
             </div>
           );
