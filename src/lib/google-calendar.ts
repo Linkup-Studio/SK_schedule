@@ -4,7 +4,7 @@
  * - 書き込む予定の中身は state に入れて往復させる（端末に何も残さない・iPhoneのホーム画面アプリでも動く）
  * - 権限は「予定の追加・変更」だけ（calendar.events）。カレンダーの中身を読むことはしない
  */
-export const GOOGLE_CLIENT_ID = "";
+export const GOOGLE_CLIENT_ID = "246045884887-2slokaiofn3boq32ia2fqd16um8p996i.apps.googleusercontent.com";
 export const GCAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 
 export interface GcalEvent {
