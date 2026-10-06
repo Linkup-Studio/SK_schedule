@@ -27,15 +27,31 @@ self.addEventListener("push", (event) => {
   }
 
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
+    Promise.all([bumpBadge(payload.badge), self.registration.showNotification(payload.title, {
       body: payload.body,
       icon: "/icons/icon-192.png",
       badge: "/icons/icon-192.png",
       tag: payload.tag,
       data: { url: payload.url },
-    })
+    })])
   );
 });
+
+// 2026-10-07: ホーム画面のアイコンの赤い数字。届くたびに＋1（送る側が数を付けてきたらその数）。
+// アプリを開くと navigation.tsx が「まだ見ていない予定＋連絡」の正しい数に合わせ直す
+async function bumpBadge(n) {
+  try {
+    const c = await caches.open("ballpark-badge");
+    const r = await c.match("/__badge");
+    const cur = r ? Number(await r.text()) || 0 : 0;
+    const next = typeof n === "number" ? n : cur + 1;
+    await c.put("/__badge", new Response(String(next)));
+    if (self.navigator && self.navigator.setAppBadge) {
+      if (next > 0) await self.navigator.setAppBadge(next);
+      else if (self.navigator.clearAppBadge) await self.navigator.clearAppBadge();
+    }
+  } catch (e) {}
+}
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();

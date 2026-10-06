@@ -141,6 +141,21 @@ export function BottomNav() {
   const [isAdmin, setIsAdmin] = useState(false);
   const { newGames, newAnns } = useUnseenCounts();
 
+  // 2026-10-07 ひろA: ホーム画面のアイコンに赤い数字（まだ見ていない予定＋連絡の数）を出す。見たら消える
+  // iPhone は「ホーム画面に追加」して通知をオンにした人だけ出る。数はプッシュを受けた時に sw.js が＋1、開いた時にここで正しい数に合わせる
+  useEffect(() => {
+    const total = (newGames || 0) + (newAnns || 0);
+    const nav = navigator as Navigator & { setAppBadge?: (n?: number) => Promise<void>; clearAppBadge?: () => Promise<void> };
+    try {
+      if (total > 0) nav.setAppBadge?.(total)?.catch(() => {});
+      else nav.clearAppBadge?.()?.catch(() => {});
+    } catch {}
+    // sw.js の数の元も合わせる（次のプッシュはこの数から＋1）
+    if ("caches" in window) {
+      caches.open("ballpark-badge").then((c) => c.put("/__badge", new Response(String(total)))).catch(() => {});
+    }
+  }, [newGames, newAnns]);
+
   useEffect(() => {
     const checkAdmin = () => {
       setIsAdmin(localStorage.getItem(storageKey) === "true");
