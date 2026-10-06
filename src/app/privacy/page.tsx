@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "プライバシーポリシー | SKアプリ（teamnote）",
+  // Googleの審査で参照される公開ページなので、ここだけ検索に載せてよい（2026-10-07）
+  robots: { index: true, follow: true },
 };
 
 /** Googleの同意画面から参照するプライバシーポリシー（Googleカレンダー連携の扱いを明記） */

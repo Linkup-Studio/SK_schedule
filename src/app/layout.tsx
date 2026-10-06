@@ -37,6 +37,8 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: true,
   },
+  // 2026-10-07 ひろA: 子どものチームなので、合言葉の画面から先は検索に載せない（紹介とプライバシーポリシーは各ページで載せる）
+  robots: { index: false, follow: false },
   // Google Search Console の所有権確認（OAuth審査で teamnote.info の持ち主を示す）
   verification: {
     google: "SDjVOtfh1BueGkLIIEbE484In36vQ4PsNT-ZbE9R0OI",

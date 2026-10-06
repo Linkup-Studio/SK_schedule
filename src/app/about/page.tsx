@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "SKアプリ（teamnote）について",
   description: "一色SKクラブの予定と出欠を共有するアプリ。スタッフ出欠を送ったあと、その日の予定を自分のGoogleカレンダーに追加できます。",
+  // Googleの審査で参照される公開ページなので、ここだけ検索に載せてよい（2026-10-07）
+  robots: { index: true, follow: true },
 };
 
 /** アプリのホームページ（Googleの同意画面・審査から参照。合言葉なしで見られる説明ページ） */
