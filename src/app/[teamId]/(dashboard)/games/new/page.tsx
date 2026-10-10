@@ -8,6 +8,7 @@ import { GAME_TYPES, GRADES } from "@/lib/constants";
 import { useTeam } from "@/components/team/team-provider";
 import { useTeamLink } from "@/hooks/use-team-link";
 import { useGoBack } from "@/hooks/use-go-back";
+import { VenueHelper } from "@/components/games/venue-helper";
 import { createGame, createAnnouncement, fetchGameById } from "@/lib/supabase-data";
 import type { GameType, GradeValue } from "@/lib/constants";
 
@@ -211,6 +212,7 @@ function NewGameContent() {
           <FormField icon={<MapPin className="w-4 h-4 text-error" />} label="会場名" required={type !== "off"}>
             <input type="text" value={venueName} onChange={(e) => setVenueName(e.target.value)} placeholder="例: 市民球場 Aグラウンド" className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" />
           </FormField>
+          <VenueHelper teamSlug={teamSlug} venueName={venueName} venueAddress={venueAddress} onPick={(n, a) => { setVenueName(n); setVenueAddress(a); }} />
           <FormField icon={<MapPin className="w-4 h-4 text-muted" />} label="会場住所">
             <input type="text" value={venueAddress} onChange={(e) => setVenueAddress(e.target.value)} placeholder="例: 東京都○○区..." className="w-full px-3.5 py-3 rounded-xl border border-border bg-background text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" />
           </FormField>
