@@ -352,7 +352,13 @@ function GameDetailContent() {
       <div className="bg-surface rounded-2xl border border-border divide-y divide-border/50 shadow-sm overflow-hidden">
         <InfoRow icon={<Calendar className="w-4.5 h-4.5 text-primary" />} label="日時" value={<div><p className="font-bold text-[14px]">{safeFormat(game.dateStart, "M月d日（E）")}</p><p className="text-[12px] text-muted mt-0.5">{safeFormat(game.dateStart, "HH:mm")}{game.dateEnd && ` 〜 ${safeFormat(game.dateEnd, "HH:mm")}`}</p></div>} />
         {game.meetingTime && (<InfoRow icon={<Clock className="w-4.5 h-4.5 text-warning" />} label="集合" value={<div><p className="font-bold text-[14px]">{game.meetingTime}</p>{game.meetingPlace && <p className="text-[12px] text-muted mt-0.5">{game.meetingPlace}</p>}</div>} />)}
-        <InfoRow icon={<MapPin className="w-4.5 h-4.5 text-error" />} label="会場" value={<div><p className="font-bold text-[14px]">{game.venueName}</p>{game.venueAddress && <p className="text-[12px] text-muted mt-0.5 leading-relaxed">{game.venueAddress}</p>}{game.venueUrl && <a href={game.venueUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] text-primary font-bold mt-1.5"><ExternalLink className="w-3.5 h-3.5" />Google Maps</a>}</div>} />
+        {/* 会場は押すとGoogleマップが開く（URL未登録でも会場名・住所で検索。ひろ指示 10/10） */}
+        <InfoRow icon={<MapPin className="w-4.5 h-4.5 text-error" />} label="会場" value={(() => {
+          const q = [game.venueName, game.venueAddress].filter(Boolean).join(" ");
+          const href = game.venueUrl || (q ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}` : "");
+          const body = <><p className="font-bold text-[14px]">{game.venueName}</p>{game.venueAddress && <p className="text-[12px] text-muted mt-0.5 leading-relaxed">{game.venueAddress}</p>}</>;
+          return href ? <a href={href} target="_blank" rel="noopener noreferrer" className="block active:opacity-70">{body}<span className="inline-flex items-center gap-1 text-[12px] text-primary font-bold mt-1.5"><ExternalLink className="w-3.5 h-3.5" />Googleマップで開く</span></a> : <div>{body}</div>;
+        })()} />
         {game.items && (<InfoRow icon={<Package className="w-4.5 h-4.5 text-info" />} label="持ち物" value={<p className="text-[13px] leading-relaxed">{game.items}</p>} />)}
         {game.notes && (<InfoRow icon={<FileText className="w-4.5 h-4.5 text-muted" />} label="備考" value={<p className="text-[13px] leading-relaxed whitespace-pre-wrap">{game.notes}</p>} />)}
       </div>
