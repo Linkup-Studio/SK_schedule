@@ -21,9 +21,29 @@ export default function PrivacyPage() {
         </section>
 
         <section className="space-y-2">
-          <h2 className="text-lg font-black">保存しないもの</h2>
-          <p>Googleから受け取る一時的な許可（アクセストークン）は、予定を追加するその場でだけ使い、サーバーにも端末にも保存しません。カレンダーの内容をこのアプリのサーバーに送ったり、保存したりすることはありません。</p>
-          <p>Googleから受け取った情報を、第三者に販売・提供したり、広告に使ったりすることはありません。このアプリによるGoogle APIから受け取った情報の利用は、限定的使用の要件を含む Google API Services User Data Policy に従います。</p>
+          <h2 className="text-lg font-black">アクセスするGoogleユーザーデータ</h2>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Googleが発行する一時的な許可（アクセストークン）：予定を1件追加するためだけに使います。</li>
+            <li>ご本人の「メインのカレンダー」への予定の作成：チームの予定の名前・日付・開始と終了の時刻・場所・メモを書き込みます。</li>
+            <li>作成した予定のリンク（Googleが返す1件分のURL）：完了画面の「Googleカレンダーで見る」に表示するためだけに使います。</li>
+          </ul>
+          <p>カレンダーの一覧、ほかの予定、メールアドレス、氏名、連絡先など、それ以外のGoogleユーザーデータにはアクセスしません。</p>
+        </section>
+
+        <section className="space-y-2">
+          <h2 className="text-lg font-black">Googleユーザーデータの共有・移転・開示</h2>
+          <p>Googleから受け取ったデータを、第三者（チームの他のメンバー、運営者、広告事業者、データ販売事業者、AIの学習を含む）に共有・移転・開示することはありません。データはご本人の端末とGoogleの間だけでやり取りされ、このアプリのサーバーを通りません。</p>
+          <p>法令に基づき開示が求められた場合を除き、販売・貸与・提供は行いません。このアプリによるGoogle APIから受け取った情報の利用は、限定的使用の要件を含む Google API Services User Data Policy に従います。</p>
+        </section>
+
+        <section className="space-y-2">
+          <h2 className="text-lg font-black">データの保護</h2>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Googleとの通信はすべて暗号化（HTTPS）されます。</li>
+            <li>アクセストークンはサーバーにも端末にも保存しません。受け取った直後にブラウザのアドレス欄から消し、予定を追加し終えたら破棄します（有効期限は最長1時間）。</li>
+            <li>求める権限は予定の作成に必要な最小のもの（calendar.events）だけで、毎回ご本人がGoogleの画面で許可した時にだけ動きます。</li>
+            <li>このアプリのデータベースには、Googleユーザーデータを一切保存しません。</li>
+          </ul>
         </section>
 
         <section className="space-y-2">
@@ -39,7 +59,15 @@ export default function PrivacyPage() {
           <p>srs.hironori1422@gmail.com</p>
         </section>
 
-        <p className="text-[13px] text-muted">制定日：2026年10月2日</p>
+        <section className="space-y-2 border-t border-border pt-5" lang="en">
+          <h2 className="text-lg font-black">English summary (Google user data)</h2>
+          <p><b>Data accessed:</b> Only when a staff member taps &quot;Add to Google Calendar&quot; after submitting attendance, the app uses a short-lived OAuth access token (scope: calendar.events) to create one event in the user&apos;s primary calendar (title, date, start/end time, location, notes of the team event). It receives only the link (htmlLink) of the event it created, to show &quot;Open in Google Calendar&quot;. It does not read, modify, or delete any other events, and does not access calendar lists, email address, name, or contacts.</p>
+          <p><b>Data sharing:</b> Google user data is not shared, transferred, or disclosed to any third party (including other team members, the operator, advertisers, data brokers, or for AI/ML model training). Data flows only between the user&apos;s device and Google and never passes through our servers. Use of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.</p>
+          <p><b>Data protection:</b> All communication with Google uses HTTPS. The access token is never stored on our servers or on the device; it is removed from the address bar immediately and discarded after the event is created (valid for at most 1 hour). The app requests only the minimum scope needed and acts only after the user approves on Google&apos;s consent screen each time. No Google user data is stored in our database.</p>
+          <p><b>Revoking access:</b> https://myaccount.google.com/connections ・ <b>Contact:</b> srs.hironori1422@gmail.com</p>
+        </section>
+
+        <p className="text-[13px] text-muted">制定日：2026年10月2日／改定日：2026年10月14日</p>
       </div>
     </main>
   );
