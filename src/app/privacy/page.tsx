@@ -17,7 +17,7 @@ export default function PrivacyPage() {
         <section className="space-y-2">
           <h2 className="text-lg font-black">Googleカレンダー連携で行うこと</h2>
           <p>スタッフが出欠を送信したあと「Googleカレンダーに追加」を押した場合にだけ、その方のGoogleカレンダーに、その日の予定を1件追加します。</p>
-          <p>Googleアカウントから受け取る権限は、カレンダーの予定に関するもの（calendar.events）だけです。このアプリが行うのは予定の追加のみで、既存の予定の読み取り・変更・削除は行いません。</p>
+          <p>Googleアカウントから受け取る権限は、カレンダーの予定に関するもの（calendar.events.owned）だけです。このアプリが行うのは予定の追加のみで、既存の予定の読み取り・変更・削除は行いません。</p>
         </section>
 
         <section className="space-y-2">
@@ -41,7 +41,7 @@ export default function PrivacyPage() {
           <ul className="list-disc pl-5 space-y-1">
             <li>Googleとの通信はすべて暗号化（HTTPS）されます。</li>
             <li>アクセストークンはサーバーにも端末にも保存しません。受け取った直後にブラウザのアドレス欄から消し、予定を追加し終えたら破棄します（有効期限は最長1時間）。</li>
-            <li>求める権限は予定の作成に必要な最小のもの（calendar.events）だけで、毎回ご本人がGoogleの画面で許可した時にだけ動きます。</li>
+            <li>求める権限は予定の作成に必要な最小のもの（calendar.events.owned）だけで、毎回ご本人がGoogleの画面で許可した時にだけ動きます。</li>
             <li>このアプリのデータベースには、Googleユーザーデータを一切保存しません。</li>
           </ul>
         </section>
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
 
         <section className="space-y-2 border-t border-border pt-5" lang="en">
           <h2 className="text-lg font-black">English summary (Google user data)</h2>
-          <p><b>Data accessed:</b> Only when a staff member taps &quot;Add to Google Calendar&quot; after submitting attendance, the app uses a short-lived OAuth access token (scope: calendar.events) to create one event in the user&apos;s primary calendar (title, date, start/end time, location, notes of the team event). It receives only the link (htmlLink) of the event it created, to show &quot;Open in Google Calendar&quot;. It does not read, modify, or delete any other events, and does not access calendar lists, email address, name, or contacts.</p>
+          <p><b>Data accessed:</b> Only when a staff member taps &quot;Add to Google Calendar&quot; after submitting attendance, the app uses a short-lived OAuth access token (scope: calendar.events.owned) to create one event in the user&apos;s primary calendar (title, date, start/end time, location, notes of the team event). It receives only the link (htmlLink) of the event it created, to show &quot;Open in Google Calendar&quot;. It does not read, modify, or delete any other events, and does not access calendar lists, email address, name, or contacts.</p>
           <p><b>Data sharing:</b> Google user data is not shared, transferred, or disclosed to any third party (including other team members, the operator, advertisers, data brokers, or for AI/ML model training). Data flows only between the user&apos;s device and Google and never passes through our servers. Use of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.</p>
           <p><b>Data protection:</b> All communication with Google uses HTTPS. The access token is never stored on our servers or on the device; it is removed from the address bar immediately and discarded after the event is created (valid for at most 1 hour). The app requests only the minimum scope needed and acts only after the user approves on Google&apos;s consent screen each time. No Google user data is stored in our database.</p>
           <p><b>Revoking access:</b> https://myaccount.google.com/connections ・ <b>Contact:</b> srs.hironori1422@gmail.com</p>

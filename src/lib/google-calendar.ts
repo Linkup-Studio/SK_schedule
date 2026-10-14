@@ -2,10 +2,10 @@
  * スタッフ出欠 → 自分のGoogleカレンダーに直接書き込む（Google Calendar API・10/2 ひろさん）
  * - アプリは静的書き出し（サーバーなし）なので、Googleのログイン画面へ移動し、戻ってきた /gcal-callback/ でブラウザから書き込む
  * - 書き込む予定の中身は state に入れて往復させる（端末に何も残さない・iPhoneのホーム画面アプリでも動く）
- * - 権限は「予定の追加・変更」だけ（calendar.events）。カレンダーの中身を読むことはしない
+ * - 権限は「自分が持つカレンダーの予定」だけ（calendar.events.owned・10/14 審査の最小権限対応で calendar.events から狭めた）。カレンダーの中身を読むことはしない
  */
 export const GOOGLE_CLIENT_ID = "246045884887-2slokaiofn3boq32ia2fqd16um8p996i.apps.googleusercontent.com";
-export const GCAL_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+export const GCAL_SCOPE = "https://www.googleapis.com/auth/calendar.events.owned";
 
 export interface GcalEvent {
   summary: string;
