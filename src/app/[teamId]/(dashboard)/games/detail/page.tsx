@@ -28,6 +28,8 @@ import { isSimpleAttendanceType } from "@/lib/constants";
 import type { AttendanceStatusValue } from "@/lib/constants";
 import type { Game, Attendance } from "@/lib/types";
 import { gcalAuthUrl } from "@/lib/google-calendar";
+
+const PARENT_GCAL_OPEN = false;
 import { Suspense } from "react";
 
 const safeFormat = (dateValue: string | Date | null | undefined, fmt: string) => {
@@ -214,6 +216,8 @@ function GameDetailContent() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   // 出席で送った直後だけ「自分のGoogleカレンダーに追加」を出す（保護者向け・10/14 ひろA）
   const [askGcal, setAskGcal] = useState(false);
+  // Googleの審査が通るまでは保護者には出さない（未審査は合計100人まで・保護者150人で超えるため 10/14 ひろ）。審査の動画は ?gcal=1 で開いて撮る。通ったら PARENT_GCAL_OPEN を true に
+  const parentGcalOn = PARENT_GCAL_OPEN || searchParams.get("gcal") === "1";
   const [gradeCounts, setGradeCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -264,7 +268,7 @@ function GameDetailContent() {
       if (!isAdmin && !isStaffModeActive(teamSlug)) setMyName(teamSlug, playerName.trim());
       setSubmitSuccess(true);
       setTimeout(() => setSubmitSuccess(false), 3000);
-      setAskGcal(morningStatus === "attend" || afternoonStatus === "attend");
+      setAskGcal(parentGcalOn && (morningStatus === "attend" || afternoonStatus === "attend"));
       setMorningStatus(null); setAfternoonStatus(null); setReason("");
     } else { alert("送信に失敗しました。もう一度お試しください。"); }
   };
