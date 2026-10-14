@@ -7,7 +7,7 @@ import { format, differenceInDays } from "date-fns";
 import { ja } from "date-fns/locale";
 import {
   ArrowLeft, MapPin, Clock, Calendar, Users, Package, FileText,
-  ExternalLink, Copy, CheckCheck, Loader2, Pencil, Trash2, ChevronRight, Share2,
+  ExternalLink, Copy, CheckCheck, Loader2, Pencil, Trash2, ChevronRight, Share2, CalendarPlus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeam } from "@/components/team/team-provider";
@@ -27,6 +27,7 @@ import { GameTypeBadge, GradeBadge } from "@/components/common/badges";
 import { isSimpleAttendanceType } from "@/lib/constants";
 import type { AttendanceStatusValue } from "@/lib/constants";
 import type { Game, Attendance } from "@/lib/types";
+import { gcalAuthUrl } from "@/lib/google-calendar";
 import { Suspense } from "react";
 
 const safeFormat = (dateValue: string | Date | null | undefined, fmt: string) => {
@@ -211,6 +212,8 @@ function GameDetailContent() {
   const [reason, setReason] = useState("");
   const [showCopied, setShowCopied] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  // 出席で送った直後だけ「自分のGoogleカレンダーに追加」を出す（保護者向け・10/14 ひろA）
+  const [askGcal, setAskGcal] = useState(false);
   const [gradeCounts, setGradeCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -261,6 +264,7 @@ function GameDetailContent() {
       if (!isAdmin && !isStaffModeActive(teamSlug)) setMyName(teamSlug, playerName.trim());
       setSubmitSuccess(true);
       setTimeout(() => setSubmitSuccess(false), 3000);
+      setAskGcal(morningStatus === "attend" || afternoonStatus === "attend");
       setMorningStatus(null); setAfternoonStatus(null); setReason("");
     } else { alert("送信に失敗しました。もう一度お試しください。"); }
   };
@@ -382,6 +386,31 @@ function GameDetailContent() {
         <div className="bg-surface rounded-2xl border-2 border-primary/20 p-4 space-y-4 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary to-primary-light" />
           {submitSuccess && (<div className="bg-attend/10 border border-attend/20 rounded-xl p-3 text-center animate-fade-in-up"><p className="text-attend font-bold text-[13px]">✅ 出欠を保存しました！</p></div>)}
+          {askGcal && (() => {
+            const start = new Date(game.dateStart);
+            const end = game.dateEnd ? new Date(game.dateEnd) : new Date(start.getTime() + 2 * 3600 * 1000);
+            const url = typeof window !== "undefined" ? gcalAuthUrl({
+              summary: game.title,
+              location: [game.venueName, game.venueAddress].filter(Boolean).join(" "),
+              description: buildInfoText(),
+              date: getLocalDateKey(start),
+              start: format(start, "HH:mm"),
+              end: getLocalDateKey(end) === getLocalDateKey(start) && end > start ? format(end, "HH:mm") : "23:59",
+              back: window.location.href,
+            }) : null;
+            if (!url) return null;
+            return (
+              <div className="rounded-xl border-2 border-info/30 bg-info/5 p-3 space-y-2 animate-fade-in-up">
+                <p className="text-[13px] font-black text-info">自分のGoogleカレンダーに追加しますか？</p>
+                <p className="text-[12px] text-muted font-bold">{safeFormat(start, "M月d日（E） HH:mm")}　{game.title}</p>
+                <a href={url} onClick={() => setAskGcal(false)} className="w-full flex items-center justify-center gap-1.5 py-3 rounded-xl bg-info text-white text-[14px] font-black shadow-sm active:scale-[0.98] touch-active">
+                  <CalendarPlus className="w-4.5 h-4.5" />Googleカレンダーに追加する
+                </a>
+                <p className="text-[11px] text-muted">Googleのアカウントを選ぶと、自動で追加されます（はじめての時だけ、カレンダーへの追加を許可する画面が出ます）。</p>
+                <button type="button" onClick={() => setAskGcal(false)} className="w-full py-1.5 text-[12px] font-bold text-muted">追加しない</button>
+              </div>
+            );
+          })()}
           <div className="text-center mb-2"><h2 className="font-black text-[15px] mb-2">出欠を送信</h2>{game.rsvpDeadline ? <div className="inline-flex items-center gap-1.5 bg-error/10 border-2 border-error/25 rounded-xl px-4 py-2"><span className="text-[13px] font-black text-error">⏰ 締切: {safeFormat(game.rsvpDeadline, "M月d日（E）")}まで</span></div> : <p className="text-[11px] text-muted">いつでも回答・変更できます</p>}</div>
           <div className="space-y-3">
             <div><label className="text-[11px] font-bold text-muted ml-1 mb-1 block">選手のお名前（必須）</label><div className="relative"><input type="text" value={playerName} onChange={(e) => setPlayerName(e.target.value)} placeholder="例: 佐藤 太郎" className="w-full bg-background border border-border px-4 py-3 pr-10 rounded-xl text-[15px] font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-input" />{playerName && (<button type="button" aria-label="名前を消す" onClick={() => setPlayerName("")} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-full bg-gray-200 text-gray-500 text-[13px] font-bold active:scale-90 transition-transform">✕</button>)}</div></div>
