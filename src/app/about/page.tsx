@@ -27,7 +27,7 @@ export default function AboutPage() {
 
         <section className="space-y-2">
           <h2 className="text-lg font-black">Googleカレンダー連携</h2>
-          <p>スタッフが出欠を送ったあと「Googleカレンダーに追加」を押すと、その日の予定を、その方自身のGoogleカレンダーに1件追加します。押した時だけ動き、予定の追加以外のこと（読み取り・変更・削除）はしません。</p>
+          <p>スタッフや保護者が出欠を送ったあと「Googleカレンダーに追加」を押すと、その日の予定を、その方自身のGoogleカレンダーに1件追加します。押した時だけ動き、予定の追加以外のこと（読み取り・変更・削除）はしません。</p>
           <p>受け取る情報の扱いは、プライバシーポリシーに書いています。</p>
           <p>
             <a href="/privacy/" className="font-bold text-info underline">プライバシーポリシーを見る</a>
@@ -37,7 +37,7 @@ export default function AboutPage() {
         <section className="space-y-2" lang="en">
           <h2 className="text-lg font-black">About (English)</h2>
           <p>teamnote (SK app) is a team scheduling and attendance app for the Isshiki SK Club, a youth baseball team in Japan. Team members sign in with a team passcode to view schedules and reply to attendance requests.</p>
-          <p>Google Calendar integration: after a staff member submits their attendance for a day, they can tap &quot;Add to Google Calendar&quot;. The app then uses the calendar.events scope only to insert that single event into the user&apos;s own primary calendar. It does not read, modify, or delete any existing events, and the access token is used once in the browser and never stored.</p>
+          <p>Google Calendar integration: after a staff member or a parent submits attendance, they can tap &quot;Add to Google Calendar&quot;. The app then uses the calendar.events.owned scope only to insert that single event into the user&apos;s own primary calendar. It does not read, modify, or delete any existing events, and the access token is used once in the browser and never stored.</p>
           <p>
             <a href="/privacy/" className="font-bold text-info underline">Privacy Policy</a>
           </p>
